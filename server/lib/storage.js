@@ -201,6 +201,36 @@ function scan(root) {
   return { count, bytes, truncated };
 }
 
+/** 写权限探针文件名（固定名，避免每次刷新都换个新名字累积垃圾） */
+const PROBE_NAME = '.__wc_write_test__';
+/** 历史遗留的探针名（旧版带 pid 与时间戳），一并清理 */
+const PROBE_RE = /^\.wc_write_test_|^\.__wc_write_test__/;
+
+/** 清掉残留的探针文件：正常会被立即删除，进程被强杀时会剩下来 */
+function sweepProbes(dir) {
+  let ents = [];
+  try {
+    ents = fs.readdirSync(dir, { withFileTypes: true });
+  } catch (e) {
+    return 0;
+  }
+  let n = 0;
+  const now = Date.now();
+  for (const e of ents) {
+    if (!e.isFile() || !PROBE_RE.test(e.name)) continue;
+    const p = path.join(dir, e.name);
+    try {
+      // 只清 30 秒前的，避免误删此刻正在写入的那个
+      if (now - fs.statSync(p).mtimeMs < 30000) continue;
+      fs.unlinkSync(p);
+      n++;
+    } catch (err) {
+      /* 单个失败不影响主流程 */
+    }
+  }
+  return n;
+}
+
 /** 检查目录是否可写（不抛异常） */
 function tryWritable(abs) {
   try {
@@ -208,12 +238,16 @@ function tryWritable(abs) {
   } catch (e) {
     return { ok: false, message: '无法创建目录：' + e.message };
   }
-  const probe = path.join(abs, '.wc_write_test_' + process.pid + '_' + Date.now());
+  sweepProbes(abs);
+  const probe = path.join(abs, PROBE_NAME);
   try {
     fs.writeFileSync(probe, 'ok');
     fs.unlinkSync(probe);
     return { ok: true, message: '' };
   } catch (e) {
+    try {
+      fs.unlinkSync(probe);
+    } catch (err) { /* 删不掉就算了，下次 sweep 会清 */ }
     return { ok: false, message: '目录不可写入：' + e.message };
   }
 }

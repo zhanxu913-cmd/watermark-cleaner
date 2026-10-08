@@ -187,7 +187,7 @@ const API_BASE_URL = 'https://your-domain.com';   // 换成你的后端地址
 ## 九、上线检查清单
 
 - [ ] `.env`：`JWT_SECRET` 已改、`WX_APPID/SECRET` 已填（退出开发模式）
-- [ ] MySQL 定期备份（`mysqldump`）已配置
+- [ ] MySQL 定期备份已配置（`node tools/backup.js`，见 §十一）
 - [ ] https 证书 + 域名备案完成，域名已加入小程序 request/uploadFile 白名单
 - [ ] FFmpeg 已安装且 `/api/videoProc/service` 返回 `available: true`
 - [ ] 启动日志打印的后台密钥已妥善保存（或用 `INIT_ADMIN_KEY` 指定）
@@ -201,3 +201,52 @@ const API_BASE_URL = 'https://your-domain.com';   // 换成你的后端地址
 - 全部文案保持「清理自有素材水印」表述
 - 隐私政策已内置（`packageCommon/pages/privacy`），需在小程序后台填写《用户隐私保护指引》并声明相册写入用途
 - 后台 6 个页面已在 `sitemap.json` 中 disallow，不会被搜一搜收录
+
+## 十一、备份与换电脑迁移
+
+项目的数据分散在 **四处**，其中三处 Git 管不到，换电脑时正是这三处最容易丢：
+
+| 资产 | 位置 | Git 是否收录 | 怎么搬 |
+|---|---|---|---|
+| 代码 / 文档 / 脚本 | 项目目录 | ✅ 已收录 | `git clone` |
+| **数据库** | 本机 MySQL（不在项目目录内！） | ❌ | `tools/backup.js` 导出 SQL |
+| **上传与产物** | `server/uploads/` | ❌ 体积会涨，已 ignore | `tools/backup.js` 复制 |
+| **运行时配置** | `server/.env` | ❌ 含密钥，已 ignore | `tools/backup.js` 复制 |
+
+### 日常备份
+
+```bash
+node tools/backup.js                 # → backup/<时间戳>/
+node tools/backup.js --out D:/备份    # 直接写到别处（如云盘同步目录）
+node tools/backup.js --keep-dumps 5  # 只保留最近 5 份
+```
+
+产出结构与恢复步骤会自动生成在备份目录里的 `恢复说明.md`。导出方式优先用 `mysqldump`，
+系统里没有它时自动切到内置导出器（纯 Node 读表生成 SQL），所以新电脑没装 MySQL Client 也能备份。
+
+> ⚠️ 备份目录含 `server.env.txt`（数据库密码 + 密钥），**不要提交到仓库、不要公开分享**。
+> `backup/` 已在 `.gitignore` 中。
+
+### 换电脑五步
+
+```bash
+# 1. 装环境：Node 18+、MySQL 8、Git
+# 2. 取代码
+git clone <仓库地址> watermark-cleaner && cd watermark-cleaner/server && npm install
+# 3. 还原配置：把备份里的 server.env.txt 复制成 server/.env（按需改 DB 密码 / 端口）
+# 4. 还原数据库与文件
+mysql -u root -p < <备份>/db/wc_watermark.sql
+cp -r <备份>/uploads/* uploads/
+# 5. 下载 FFmpeg 并自检
+cd .. && node tools/get-ffmpeg.js && node tools/doctor.js
+```
+
+### 已为可移植性做的处理
+
+- **FFmpeg 路径自动探测**（`server/lib/binpath.js`）：按 `.env` 配置 → 项目内置 `tools/bin` → 系统 PATH 依次查找。
+  原来的 `.env` 里写死了本机绝对路径，换机后视频功能会直接失效；现在换成任何一个可用的即可，
+  `/api/videoProc/service` 会回报实际用的是哪一个。
+- **换行符统一**（`.gitattributes`）：避免在 Windows 与其它系统之间来回 diff。
+- **存储路径限定项目内**：后台「配置 → 存储路径」只允许选项目文件夹内的目录，避免指到别的盘后
+  文件与数据库对不上（详见 `server/lib/storage.js`）。
+- **权限探针自动清扫**：写权限检测若被异常中断，残留的探针文件会在下次检查时自动清掉，不会污染上传目录与备份。
