@@ -74,11 +74,12 @@ const BLOCKED_PREFIX = [
   path.join(PROJECT_ROOT, 'server', 'db'),
   path.join(PROJECT_ROOT, 'server', 'public')
 ];
-/** 项目资料目录（文档 / 设计稿 / 脚本），同样不允许混放用户文件 */
+/** 项目资料 / 产物目录（文档、设计稿、脚本、备份包），同样不允许混放用户文件 */
 const BLOCKED_ASSET = [
   path.join(PROJECT_ROOT, 'design'),
   path.join(PROJECT_ROOT, 'docs'),
-  path.join(PROJECT_ROOT, 'tools')
+  path.join(PROJECT_ROOT, 'tools'),
+  path.join(PROJECT_ROOT, 'backup')
 ];
 /** 路径中出现这些目录名一律不允许 */
 const BLOCKED_SEG = ['node_modules'];
