@@ -1,0 +1,231 @@
+.hero {
+  padding: 16rpx 0 0;
+}
+
+.hero-sub {
+  font-size: 24rpx;
+  color: #b4b2a9;
+  margin-top: 12rpx;
+}
+
+.boot-retry {
+  display: inline-block;
+  margin-top: 12rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 20rpx;
+  background: #185fa5;
+  color: #ffffff;
+  font-size: 24rpx;
+}
+
+/* 配额行 */
+.quota-line {
+  display: flex;
+  align-items: center;
+  margin-top: 28rpx;
+  font-size: 24rpx;
+  color: #5f5e5a;
+}
+
+.admin-entry {
+  padding: 8rpx 22rpx;
+  border-radius: 20rpx;
+  background: #e6f1fb;
+  color: #185fa5;
+  font-size: 24rpx;
+}
+
+/* 功能入口 */
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+  margin-top: 28rpx;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 32rpx 28rpx;
+  border-radius: 28rpx;
+}
+
+.entry-hover {
+  opacity: 0.88;
+}
+
+.entry-blue {
+  background: #e6f1fb;
+}
+
+.entry-blue .entry-tt {
+  color: #0c447c;
+}
+
+.entry-blue .entry-dd {
+  color: #185fa5;
+}
+
+.entry-go-blue {
+  color: #185fa5;
+}
+
+.entry-green {
+  background: #e1f5ee;
+}
+
+.entry-green .entry-tt {
+  color: #085041;
+}
+
+.entry-green .entry-dd {
+  color: #0f6e56;
+}
+
+.entry-off {
+  background: #f1efe8;
+}
+
+.entry-off .entry-tt {
+  color: #5f5e5a;
+}
+
+.entry-off .entry-dd {
+  color: #b4b2a9;
+}
+
+.entry-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.entry-icon-blue {
+  background: #b5d4f4;
+}
+
+.entry-icon-green {
+  background: #9fe1cb;
+}
+
+.entry-icon-off {
+  background: #d3d1c7;
+}
+
+.ic-img {
+  width: 36rpx;
+  height: 30rpx;
+  border: 3rpx solid #185fa5;
+  border-radius: 6rpx;
+}
+
+.entry-icon-green .ic-vid {
+  width: 0;
+  height: 0;
+  border-left: 26rpx solid #0f6e56;
+  border-top: 17rpx solid transparent;
+  border-bottom: 17rpx solid transparent;
+  margin-left: 6rpx;
+}
+
+.entry-icon-off .ic-vid {
+  width: 0;
+  height: 0;
+  border-left: 26rpx solid #888780;
+  border-top: 17rpx solid transparent;
+  border-bottom: 17rpx solid transparent;
+  margin-left: 6rpx;
+}
+
+.entry-tt {
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.entry-dd {
+  font-size: 24rpx;
+  margin-top: 6rpx;
+}
+
+.entry-go {
+  font-size: 34rpx;
+  color: #0f6e56;
+}
+
+.entry-off .entry-go {
+  color: #b4b2a9;
+}
+
+/* 最近处理 */
+.sect-more {
+  font-size: 24rpx;
+  color: #b4b2a9;
+}
+
+.recent-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.recent-track,
+.recent-track-static {
+  display: flex;
+  gap: 20rpx;
+}
+
+.recent-track-static {
+  overflow: hidden;
+}
+
+.recent-item {
+  width: 132rpx;
+  flex-shrink: 0;
+}
+
+.recent-thumb {
+  width: 132rpx;
+  height: 132rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6f1fb;
+}
+
+.recent-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.recent-ph {
+  font-size: 26rpx;
+  color: #185fa5;
+}
+
+.recent-name {
+  font-size: 22rpx;
+  color: #5f5e5a;
+  margin-top: 12rpx;
+}
+
+.sk-line {
+  height: 22rpx;
+  margin-top: 12rpx;
+  border-radius: 8rpx;
+}
+
+.recent-empty {
+  padding: 20rpx 0 0;
+}
+
+.foot-note {
+  text-align: center;
+  font-size: 24rpx;
+  color: #b4b2a9;
+  padding: 56rpx 0 20rpx;
+}

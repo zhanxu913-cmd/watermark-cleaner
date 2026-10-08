@@ -1,0 +1,476 @@
+/* 结果页内容较长，底栏固定悬浮，保证按钮始终可点 */
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+/* 为固定底栏留出滚动余量 */
+.page-bottom-hold {
+  height: calc(400rpx + env(safe-area-inset-bottom));
+}
+
+/* 状态横幅 */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 18rpx;
+  padding: 24rpx 26rpx;
+  border-radius: 20rpx;
+  margin: 20rpx 0 8rpx;
+}
+
+.banner-ok {
+  background: #e8f5ef;
+  border: 1rpx solid #b8e0cd;
+}
+
+.banner-fail {
+  background: #fdeceb;
+  border: 1rpx solid #f5c6c2;
+}
+
+.banner-wait {
+  background: #eef4fb;
+  border: 1rpx solid #c6dcf3;
+}
+
+.banner-icon {
+  flex-shrink: 0;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.banner-ok .banner-icon {
+  background: #0f6e56;
+}
+
+.banner-fail .banner-icon {
+  background: #c0392b;
+}
+
+.banner-wait .banner-icon {
+  background: #185fa5;
+}
+
+.banner-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2c2c2a;
+  line-height: 1.4;
+}
+
+.banner-desc {
+  font-size: 24rpx;
+  color: #6b6a64;
+  margin-top: 6rpx;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+/* 下载进度提示 */
+.dl-progress {
+  font-size: 24rpx;
+  color: #0f6e56;
+  text-align: center;
+  margin-bottom: 12rpx;
+}
+
+/* 底部「下载 + 保存」并排：主按钮等宽 */
+.bottom-bar .btn-row .btn-primary {
+  flex: 1;
+  height: 84rpx;
+  border-radius: 24rpx;
+  font-size: 26rpx;
+}
+
+.bottom-bar .btn-ghost.disabled,
+.bottom-bar .btn-primary.disabled {
+  opacity: 0.6;
+}
+
+/* 骨架 */
+.sk-block {
+  height: 420rpx;
+  border-radius: 24rpx;
+  margin-top: 20rpx;
+}
+
+.sk-line2 {
+  height: 120rpx;
+  border-radius: 20rpx;
+  margin-top: 24rpx;
+}
+
+/* 左右对比（图片） */
+.cmp {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.cmp-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.cmp-box {
+  height: 400rpx;
+  border-radius: 22rpx;
+  overflow: hidden;
+  border: 1rpx solid #e5e3dc;
+  background: #f1efe8;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cmp-box-on {
+  border: 3rpx solid #378add;
+}
+
+.cmp-img {
+  width: 100%;
+  height: 100%;
+}
+
+.cmp-ph {
+  font-size: 24rpx;
+  color: #b4b2a9;
+}
+
+.cmp-cap {
+  text-align: center;
+  font-size: 24rpx;
+  color: #b4b2a9;
+  margin-top: 14rpx;
+}
+
+.cmp-cap-on {
+  color: #185fa5;
+  font-weight: 500;
+}
+
+.cmp-arrow {
+  font-size: 30rpx;
+  color: #b4b2a9;
+  flex-shrink: 0;
+}
+
+/* ============ 视频 ============ */
+
+/* 模式切换段控件 */
+.vseg {
+  display: flex;
+  background: #f1efe8;
+  border-radius: 16rpx;
+  padding: 6rpx;
+  margin-top: 20rpx;
+}
+
+.vseg-item {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  color: #6b6a63;
+  padding: 16rpx 0;
+  border-radius: 12rpx;
+  transition: all 0.15s;
+}
+
+.vseg-on {
+  background: #ffffff;
+  color: #185fa5;
+  font-weight: 500;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+/* 单播放器 */
+.vwrap {
+  margin-top: 20rpx;
+  height: 480rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  background: #2c2c2a;
+  position: relative;
+}
+
+.vplayer {
+  width: 100%;
+  height: 100%;
+}
+
+/* 播放失败兜底 */
+.vfallback {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(44, 44, 42, 0.94);
+  padding: 0 48rpx;
+}
+
+.vfallback-tx {
+  font-size: 26rpx;
+  color: #ffffff;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.vfallback-btn {
+  margin-top: 28rpx;
+  padding: 14rpx 40rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  color: #ffffff;
+}
+
+/* 占位（处理中） */
+.vph {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 48rpx;
+}
+
+.vph-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.vph-sub {
+  font-size: 26rpx;
+  color: #b4b2a9;
+  margin-top: 16rpx;
+  text-align: center;
+}
+
+.vph-progress {
+  width: 360rpx;
+  height: 8rpx;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8rpx;
+  margin-top: 24rpx;
+  overflow: hidden;
+}
+
+.vph-progress-bar {
+  height: 100%;
+  background: #378add;
+  border-radius: 8rpx;
+  transition: width 0.4s ease;
+}
+
+.vph-pct {
+  font-size: 24rpx;
+  color: #378add;
+  margin-top: 12rpx;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.vph-tip {
+  font-size: 22rpx;
+  color: #888780;
+  margin-top: 28rpx;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* 播放控制条 */
+.vbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18rpx;
+  padding: 0 6rpx;
+}
+
+.vbar-time {
+  font-size: 26rpx;
+  color: #6b6a63;
+  font-variant-numeric: tabular-nums;
+}
+
+.vbar-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.vbar-btn {
+  font-size: 24rpx;
+  color: #6b6a63;
+  padding: 10rpx 24rpx;
+  border: 1rpx solid #e5e3dc;
+  border-radius: 30rpx;
+  background: #ffffff;
+}
+
+.vbar-btn-on {
+  color: #185fa5;
+  border-color: #378add;
+  background: #eef5fd;
+}
+
+/* ============ 双播放器对比 ============ */
+
+.vcmp-tip {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: #888780;
+  text-align: center;
+}
+
+.vcmp {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.vcmp-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.vcmp-stage {
+  position: relative;
+  height: 340rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: #2c2c2a;
+  border: 1rpx solid #e5e3dc;
+}
+
+.vcmp-stage-on {
+  border: 3rpx solid #378add;
+}
+
+.vcmp-badge {
+  position: absolute;
+  left: 12rpx;
+  top: 12rpx;
+  font-size: 20rpx;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  pointer-events: none;
+}
+
+.vcmp-badge-on {
+  background: rgba(55, 138, 221, 0.9);
+}
+
+.vcmp-err {
+  font-size: 22rpx;
+  color: #c0453b;
+  text-align: center;
+  margin-top: 10rpx;
+}
+
+.vcmp-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.vcmp-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  color: #6b6a63;
+  padding: 20rpx 0;
+  border: 1rpx solid #e5e3dc;
+  border-radius: 16rpx;
+  background: #ffffff;
+}
+
+.vcmp-btn-on {
+  color: #ffffff;
+  background: #378add;
+  border-color: #378add;
+}
+
+/* 原图小图（图片结果保留） */
+.vbase {
+  margin-top: 24rpx;
+}
+
+.vbase-img {
+  width: 100%;
+  height: 200rpx;
+  border-radius: 20rpx;
+  background: #f1efe8;
+}
+
+.vbase-cap {
+  text-align: center;
+  font-size: 24rpx;
+  color: #b4b2a9;
+  margin-top: 12rpx;
+}
+
+/* 参数小字 */
+.metric-v-sm {
+  font-size: 30rpx;
+}
+
+/* 参数区 4 列（分辨率 / 格式 / 处理方式 / 大小） */
+.metric-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.metric-row .metric {
+  flex: 1 1 calc(25% - 16rpx);
+  min-width: 140rpx;
+}
+
+/* 下载默认文件名 */
+.fname {
+  margin-top: 20rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 16rpx;
+  background: #f6f5f1;
+  border: 1rpx solid #e5e3dc;
+}
+
+.fname-k {
+  font-size: 22rpx;
+  color: #b4b2a9;
+}
+
+.fname-v {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #2c2c2a;
+  font-weight: 500;
+}

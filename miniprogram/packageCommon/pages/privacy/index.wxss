@@ -1,0 +1,24 @@
+.updated {
+  font-size: 24rpx;
+  color: #b4b2a9;
+  padding: 20rpx 0 8rpx;
+}
+
+.sec {
+  margin-top: 44rpx;
+}
+
+.sec-t {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+  margin-bottom: 16rpx;
+}
+
+.sec-p {
+  font-size: 27rpx;
+  color: #5f5e5a;
+  line-height: 1.85;
+  margin-bottom: 16rpx;
+  text-align: justify;
+}

@@ -1,0 +1,34 @@
+# ── 依赖 ────────────────────────────────────────────────
+node_modules/
+miniprogram_npm/
+
+# ── 运行时数据（用户上传、去水印产物、缩略图）──────────────
+# 属于用户数据且体积会持续增长，不进仓库；换电脑请用 node tools/backup.js 单独搬
+server/uploads/
+
+# ── 密钥与本地配置 ──────────────────────────────────────
+# 含数据库密码、JWT 密钥、后台密钥，绝不能提交
+server/.env
+*.local.env
+.env.local
+
+# ── 备份包（含数据库导出与 .env 副本）────────────────────
+backup/
+
+# ── 内置 FFmpeg 二进制（约 140 MB）──────────────────────
+# 换电脑后执行 node tools/get-ffmpeg.js 自动重新下载
+tools/bin/
+tools/.tmp-video-test/
+
+# ── 临时与测试产物 ──────────────────────────────────────
+.tmp/
+*.log
+npm-debug.log*
+
+# ── 微信开发者工具 / 编辑器 / 系统 ───────────────────────
+project.private.config.json
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

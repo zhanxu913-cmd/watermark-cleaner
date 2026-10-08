@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>水印清理 · 小程序界面设计稿 v1.0</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #F5F5F3;
+    color: #2C2C2A;
+    line-height: 1.6;
+    padding: 40px 24px 80px;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+
+  .doc-head { margin-bottom: 40px; }
+  .doc-head h1 { font-size: 26px; font-weight: 500; letter-spacing: -0.3px; }
+  .doc-head .sub { font-size: 14px; color: #888780; margin-top: 8px; }
+  .doc-head .meta { font-size: 13px; color: #B4B2A9; margin-top: 14px; display: flex; gap: 20px; flex-wrap: wrap; }
+
+  .sect { margin-bottom: 56px; }
+  .sect > h2 {
+    font-size: 18px; font-weight: 500; margin-bottom: 6px;
+    padding-bottom: 12px; border-bottom: 1px solid #E5E3DC;
+  }
+  .sect > h2 .idx { color: #B4B2A9; margin-right: 10px; font-weight: 400; }
+  .sect > .desc { font-size: 13px; color: #888780; margin: 14px 0 24px; max-width: 780px; }
+
+  /* ---------- 设计规范 ---------- */
+  .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .spec-card { background: #FFFFFF; border: 1px solid #E5E3DC; border-radius: 12px; padding: 18px 20px; }
+  .spec-card h3 { font-size: 14px; font-weight: 500; margin-bottom: 14px; }
+  .spec-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #5F5E5A; padding: 5px 0; }
+  .swatch { width: 20px; height: 20px; border-radius: 5px; border: 1px solid rgba(0,0,0,0.08); flex-shrink: 0; }
+  .spec-row .val { margin-left: auto; font-size: 12px; color: #B4B2A9; font-family: ui-monospace, Menlo, monospace; }
+
+  /* ---------- 手机框 ---------- */
+  .screens { display: flex; gap: 28px; flex-wrap: wrap; }
+  .screen-item { }
+  .screen-item .cap { margin-top: 14px; max-width: 375px; }
+  .screen-item .cap .t { font-size: 14px; font-weight: 500; }
+  .screen-item .cap .d { font-size: 12px; color: #888780; margin-top: 4px; line-height: 1.6; }
+  .screen-item .cap .d b { font-weight: 500; color: #5F5E5A; }
+
+  .phone {
+    width: 375px; height: 812px; border-radius: 28px;
+    border: 1px solid #D3D1C7; background: #FFFFFF;
+    overflow: hidden; display: flex; flex-direction: column;
+    position: relative;
+  }
+  .sbar { height: 34px; display: flex; align-items: center; justify-content: space-between;
+          padding: 0 20px; font-size: 12px; color: #B4B2A9; flex-shrink: 0; }
+  .navbar { height: 46px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 18px; flex-shrink: 0; }
+  .navbar .title { font-size: 16px; font-weight: 500; }
+  .navbar .act { font-size: 13px; color: #888780; }
+  .capsule { display: flex; align-items: center; border: 1px solid #D3D1C7; border-radius: 14px;
+             height: 28px; padding: 0 7px; flex-shrink: 0; }
+  .capsule .dots { width: 12px; height: 2px; border-radius: 1px; background: #B4B2A9; }
+  .capsule .sep { width: 1px; height: 13px; background: #D3D1C7; margin: 0 6px; }
+  .capsule .ring { width: 11px; height: 11px; border: 1.5px solid #B4B2A9; border-radius: 50%; }
+
+  .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  .tabbar { height: 58px; border-top: 1px solid #E5E3DC; display: flex; flex-shrink: 0; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .tab .ic { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #B4B2A9; }
+  .tab.on .ic { background: #378ADD; border-color: #378ADD; }
+  .tab .lb { font-size: 11px; color: #B4B2A9; }
+  .tab.on .lb { color: #185FA5; }
+
+  /* ---------- 组件 ---------- */
+  .hero-title { font-size: 19px; font-weight: 500; line-height: 1.45; }
+  .hero-sub { font-size: 12px; color: #B4B2A9; margin-top: 6px; }
+
+  .notice { border-radius: 10px; padding: 11px 13px; display: flex; gap: 9px; align-items: flex-start; }
+  .notice .bar { width: 3px; border-radius: 2px; flex-shrink: 0; }
+  .notice .tx { font-size: 12px; line-height: 1.55; }
+  .notice.warn { background: #FAEEDA; }
+  .notice.warn .bar { background: #EF9F27; height: 30px; }
+  .notice.warn .tx { color: #854F0B; }
+  .notice.ok { background: #EAF3DE; }
+  .notice.ok .bar { background: #97C459; height: 30px; }
+  .notice.ok .tx { color: #3B6D11; }
+  .notice.plain { background: #F1EFE8; }
+  .notice.plain .tx { color: #5F5E5A; }
+
+  .entry { display: flex; align-items: center; gap: 14px; padding: 17px 15px; border-radius: 14px; }
+  .entry .icon { width: 44px; height: 44px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .entry .tt { font-size: 15px; font-weight: 500; }
+  .entry .dd { font-size: 12px; margin-top: 4px; }
+  .entry .go { font-size: 17px; }
+  .entry.blue { background: #E6F1FB; }
+  .entry.blue .tt { color: #0C447C; } .entry.blue .dd { color: #185FA5; } .entry.blue .go { color: #185FA5; }
+  .entry.green { background: #E1F5EE; }
+  .entry.green .tt { color: #085041; } .entry.green .dd { color: #0F6E56; } .entry.green .go { color: #0F6E56; }
+
+  .thumb-sq { width: 64px; height: 64px; border-radius: 10px; position: relative; flex-shrink: 0; }
+  .thumb-sm { width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ic-img { width: 18px; height: 15px; border: 1.5px solid rgba(255,255,255,0.92); border-radius: 2px; }
+  .ic-vid { width: 0; height: 0; border-left: 12px solid rgba(255,255,255,0.92); border-top: 8px solid transparent; border-bottom: 8px solid transparent; margin-left: 3px; }
+
+  .chip { padding: 6px 13px; border-radius: 15px; font-size: 12px; background: #F1EFE8; color: #5F5E5A; border: 1px solid transparent; }
+  .chip.on { background: #E6F1FB; color: #0C447C; border-color: #B5D4F4; }
+
+  .btn-primary { height: 48px; background: #185FA5; border-radius: 13px; display: flex; align-items: center;
+                 justify-content: center; color: #FFFFFF; font-size: 15px; font-weight: 500; }
+  .btn-ghost { height: 42px; border: 1px solid #D3D1C7; border-radius: 12px; display: flex; align-items: center;
+               justify-content: center; font-size: 13px; color: #5F5E5A; flex: 1; }
+  .btn-mini { flex: 1; height: 36px; border: 1px solid #D3D1C7; border-radius: 9px; display: flex;
+              align-items: center; justify-content: center; font-size: 12px; color: #5F5E5A; }
+  .btn-mini.dim { border-color: #E5E3DC; color: #B4B2A9; }
+
+  .seg { height: 36px; background: #F1EFE8; border-radius: 9px; display: flex; padding: 3px; }
+  .seg .it { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #5F5E5A; border-radius: 7px; }
+  .seg .it.on { background: #FFFFFF; color: #2C2C2A; font-weight: 500; }
+
+  .field-label { font-size: 12px; color: #B4B2A9; }
+  .metric { flex: 1; background: #F1EFE8; border-radius: 10px; padding: 11px 12px; }
+  .metric .k { font-size: 12px; color: #B4B2A9; }
+  .metric .v { font-size: 19px; font-weight: 500; margin-top: 4px; }
+
+  .row-item { display: flex; align-items: center; justify-content: space-between;
+              padding: 14px 0; border-bottom: 1px solid #F1EFE8; }
+  .row-item:last-child { border-bottom: none; }
+  .row-item .k { font-size: 14px; }
+  .row-item .r { font-size: 13px; color: #B4B2A9; }
+
+  .badge { padding: 3px 8px; border-radius: 9px; font-size: 12px; flex-shrink: 0; }
+  .badge.ok { background: #EAF3DE; color: #3B6D11; }
+  .badge.warn { background: #FAEEDA; color: #854F0B; }
+
+  /* 画布（模拟照片） */
+  .canvas-photo { position: absolute; inset: 0; }
+  .layer-sky { position: absolute; left: 0; right: 0; top: 0; height: 56%; background: #B5D4F4; }
+  .layer-mid { position: absolute; left: 0; right: 0; top: 56%; height: 26%; background: #97C459; }
+  .layer-low { position: absolute; left: 0; right: 0; top: 82%; height: 18%; background: #5DCAA5; }
+  .layer-sun { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #FAEEDA; }
+  .wm-text { position: absolute; font-size: 12px; color: #FFFFFF; letter-spacing: 1px; }
+  .sel-box { position: absolute; border: 1.5px dashed #185FA5; background: rgba(55,138,221,0.38); border-radius: 7px; }
+  .hint-tag { position: absolute; padding: 3px 8px; border-radius: 5px; background: rgba(0,0,0,0.45);
+              font-size: 11px; color: #FFFFFF; }
+
+  .tech-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #FFFFFF;
+                border: 1px solid #E5E3DC; border-radius: 12px; overflow: hidden; }
+  .tech-table th { text-align: left; font-weight: 500; font-size: 13px; color: #5F5E5A;
+                   background: #FAFAF8; padding: 12px 14px; border-bottom: 1px solid #E5E3DC; }
+  .tech-table td { padding: 12px 14px; border-bottom: 1px solid #F1EFE8; vertical-align: top; color: #444441; }
+  .tech-table tr:last-child td { border-bottom: none; }
+  .tech-table code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: #F1EFE8;
+                     padding: 1px 5px; border-radius: 4px; color: #185FA5; }
+
+  .risk { background: #FFFFFF; border: 1px solid #E5E3DC; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
+  .risk .h { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .risk .h .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .risk .b { font-size: 13px; color: #5F5E5A; margin-top: 8px; line-height: 1.7; }
+  .risk.hi .dot { background: #E24B4A; }
+  .risk.md .dot { background: #EF9F27; }
+  .risk.lo .dot { background: #639922; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-head">
+    <h1>水印清理 · 微信小程序界面设计稿</h1>
+    <div class="sub">定位：自有素材水印清理工具 · 微信原生 + 云开发 · 375 × 812 基准</div>
+    <div class="meta">
+      <span>版本 v1.0</span>
+      <span>6 个页面</span>
+      <span>2026-09-24</span>
+    </div>
+  </div>
+
+  <!-- ========== 一、设计规范 ========== -->
+  <div class="sect">
+    <h2><span class="idx">01</span>设计规范</h2>
+    <div class="desc">全站单一主色，蓝用于图片线、绿用于视频线，形成两条可辨识的功能动线。所有色值均已核对浅色主题下的对比度。</div>
+
+    <div class="spec-grid">
+      <div class="spec-card">
+        <h3>色彩</h3>
+        <div class="spec-row"><div class="swatch" style="background:#185FA5;"></div>主色 · 按钮/强调<span class="val">#185FA5</span></div>
+        <div class="spec-row"><div class="swatch" style="background:#378ADD;"></div>选中 · 选区手柄<span class="val">#378ADD</span></div>
+        <div class="spec-row"><div class="swatch" style="background:#E6F1FB;"></div>主色浅底<span class="val">#E6F1FB</span></div>
+        <div class="spec-row"><div class="swatch" style="background:#0F6E56;"></div>视频线 · 深<span class="val">#0F6E56</span></div>
+        <div class="spec-row"><div class="swatch" style="background:#E1F5EE;"></div>视频线 · 浅底<span class="val">#E1F5EE</span></div>
+        <div class="spec-row"><div class="swatch" style="background:#FAEEDA;"></div>警示底<span class="val">#FAEEDA</span></div>
+        <div class="spec-row"><div class="swatch" style="background:#EAF3DE;"></div>成功底<span class="val">#EAF3DE</span></div>
+        <div class="spec-row"><div class="swatch" style="background:#F1EFE8;"></div>中性面<span class="val">#F1EFE8</span></div>
+      </div>
+
+      <div class="spec-card">
+        <h3>字号</h3>
+        <div class="spec-row">主标题<span class="val">19 / 500</span></div>
+        <div class="spec-row">页面标题<span class="val">16 / 500</span></div>
+        <div class="spec-row">卡片标题<span class="val">15 / 500</span></div>
+        <div class="spec-row">正文<span class="val">13–14 / 400</span></div>
+        <div class="spec-row">辅助说明<span class="val">12 / 400</span></div>
+        <div class="spec-row">下限<span class="val">11 / 400</span></div>
+        <div class="spec-row" style="color:#B4B2A9;">仅 400 与 500 两个字重<span class="val">—</span></div>
+      </div>
+
+      <div class="spec-card">
+        <h3>圆角与间距</h3>
+        <div class="spec-row">卡片 / 功能入口<span class="val">14px</span></div>
+        <div class="spec-row">主按钮<span class="val">13px</span></div>
+        <div class="spec-row">标签 / 状态<span class="val">15px</span></div>
+        <div class="spec-row">缩略图<span class="val">10px</span></div>
+        <div class="spec-row">页面左右边距<span class="val">16px</span></div>
+        <div class="spec-row">区块间距<span class="val">18px</span></div>
+        <div class="spec-row">卡片间距<span class="val">10px</span></div>
+      </div>
+
+      <div class="spec-card">
+        <h3>触控区与安全</h3>
+        <div class="spec-row">主按钮高度<span class="val">48px</span></div>
+        <div class="spec-row">次级按钮高度<span class="val">42px</span></div>
+        <div class="spec-row">最小点击区<span class="val">44 × 44</span></div>
+        <div class="spec-row">底部安全区<span class="val">env(safe-area-inset-bottom)</span></div>
+        <div class="spec-row">导航栏<span class="val">自定义，右侧避让胶囊</span></div>
+        <div class="spec-row">icon 尺寸<span class="val">44 / 24 / 18</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 二、页面设计 ========== -->
+  <div class="sect">
+    <h2><span class="idx">02</span>页面设计</h2>
+    <div class="desc">共 6 屏。首页负责分流，两个编辑页负责核心交互，结果页负责交付，记录页与我的页提供回访理由。</div>
+
+    <div class="screens">
+
+      <!-- ===== 1. 首页 ===== -->
+      <div class="screen-item">
+        <div class="phone">
+          <div class="sbar"><span>9:41</span><span>●●●</span></div>
+          <div class="navbar">
+            <span class="title">水印清理</span>
+            <div class="capsule"><div class="dots"></div><div class="sep"></div><div class="ring"></div></div>
+          </div>
+          <div class="content">
+            <div style="padding:4px 18px 14px;">
+              <div class="hero-title">清理你自己素材上的水印</div>
+              <div class="hero-sub">原图不上传第三方，处理后云端副本自动删除</div>
+            </div>
+
+            <div style="margin:0 16px 16px;">
+              <div class="notice warn">
+                <div class="bar"></div>
+                <div class="tx">请仅处理你拥有版权的素材。去除他人作品水印可能构成侵权。</div>
+              </div>
+            </div>
+
+            <div style="padding:0 16px; display:flex; flex-direction: column; gap: 11px;">
+              <div class="entry blue">
+                <div class="icon" style="background:#B5D4F4;"><div class="ic-img" style="border-color:#185FA5;"></div></div>
+                <div style="flex:1;">
+                  <div class="tt">图片去水印</div>
+                  <div class="dd">涂抹 / 框选 / 裁剪 · 本地处理</div>
+                </div>
+                <div class="go">›</div>
+              </div>
+              <div class="entry green">
+                <div class="icon" style="background:#9FE1CB;"><div class="ic-vid" style="border-left-color:#0F6E56;"></div></div>
+                <div style="flex:1;">
+                  <div class="tt">视频去水印</div>
+                  <div class="dd">框选区域 + 时间区间</div>
+                </div>
+                <div class="go">›</div>
+              </div>
+            </div>
+
+            <div style="padding:20px 16px 0;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px;">
+                <span style="font-size:14px; font-weight:500;">最近处理</span>
+                <span style="font-size:12px; color:#B4B2A9;">全部 ›</span>
+              </div>
+              <div style="display:flex; gap:9px;">
+                <div class="thumb-sq" style="background:#B5D4F4;"><div class="hint-tag" style="left:6px; bottom:5px; padding:1px 5px;">图</div></div>
+                <div class="thumb-sq" style="background:#97C459;"><div class="hint-tag" style="left:6px; bottom:5px; padding:1px 5px;">图</div></div>
+                <div class="thumb-sq" style="background:#85B7EB;"><div class="hint-tag" style="left:6px; bottom:5px; padding:1px 5px;">视</div></div>
+                <div class="thumb-sq" style="background:#F1EFE8; display:flex; align-items:center; justify-content:center; font-size:12px; color:#B4B2A9;">+12</div>
+              </div>
+            </div>
+
+            <div style="margin-top:auto;">
+              <div class="tabbar">
+                <div class="tab on"><div class="ic"></div><div class="lb">首页</div></div>
+                <div class="tab"><div class="ic"></div><div class="lb">记录</div></div>
+                <div class="tab"><div class="ic" style="border-radius:50%;"></div><div class="lb">我的</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <div class="t">01 首页</div>
+          <div class="d">刻意<b>不做"粘贴链接"输入框</b>——该入口形态是审核的红线特征。改为上传入口 + 常驻版权提示条，提示条不可关闭。</div>
+        </div>
+      </div>
+
+      <!-- ===== 2. 图片编辑页 ===== -->
+      <div class="screen-item">
+        <div class="phone">
+          <div class="sbar"><span>9:41</span><span>●●●</span></div>
+          <div class="navbar">
+            <span class="act">取消</span>
+            <span class="title" style="font-size:15px;">图片去水印</span>
+            <div class="capsule"><div class="dots"></div><div class="sep"></div><div class="ring"></div></div>
+          </div>
+          <div class="content">
+            <div style="margin:4px 16px 0; height:300px; border-radius:14px; overflow:hidden; position:relative; border:1px solid #E5E3DC;">
+              <div class="canvas-photo">
+                <div class="layer-sky"></div>
+                <div class="layer-mid"></div>
+                <div class="layer-low"></div>
+              </div>
+              <div class="layer-sun" style="right:52px; top:30px;"></div>
+              <div class="wm-text" style="right:16px; bottom:16px;">© SAMPLE 2026</div>
+              <div class="sel-box" style="right:6px; bottom:6px; width:172px; height:42px;"></div>
+              <div class="hint-tag" style="left:10px; top:10px;">涂抹中</div>
+            </div>
+
+            <div style="display:flex; gap:9px; padding:14px 16px 0;">
+              <div class="btn-mini">撤销</div>
+              <div class="btn-mini dim">重做</div>
+              <div class="btn-mini">原图对比</div>
+            </div>
+
+            <div class="seg" style="margin:14px 16px 0;">
+              <div class="it on">涂抹</div>
+              <div class="it">框选</div>
+              <div class="it">裁剪</div>
+            </div>
+
+            <div style="padding:16px 16px 0;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:9px;">
+                <span class="field-label">笔刷大小</span>
+                <span class="field-label">32 px</span>
+              </div>
+              <div style="height:4px; background:#F1EFE8; border-radius:2px; position:relative;">
+                <div style="width:46%; height:100%; background:#378ADD; border-radius:2px;"></div>
+                <div style="position:absolute; left:46%; top:-6px; width:16px; height:16px; border-radius:50%; background:#FFFFFF; border:2px solid #378ADD;"></div>
+              </div>
+            </div>
+
+            <div style="padding:18px 16px 0;">
+              <div class="field-label" style="margin-bottom:9px;">填充方式</div>
+              <div style="display:flex; gap:9px;">
+                <div class="chip on">智能填充</div>
+                <div class="chip">模糊</div>
+                <div class="chip">马赛克</div>
+              </div>
+            </div>
+
+            <div style="margin-top:auto; padding:16px 16px 26px;">
+              <div class="btn-primary">开始处理</div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <div class="t">02 图片编辑页</div>
+          <div class="d">核心交互页。三种选区方式并列，<b>笔刷大小用滑杆实时反馈</b>。图片走本地 canvas，因此无需等待提示。</div>
+        </div>
+      </div>
+
+      <!-- ===== 3. 视频编辑页 ===== -->
+      <div class="screen-item">
+        <div class="phone">
+          <div class="sbar"><span>9:41</span><span>●●●</span></div>
+          <div class="navbar">
+            <span class="act">取消</span>
+            <span class="title" style="font-size:15px;">视频去水印</span>
+            <div class="capsule"><div class="dots"></div><div class="sep"></div><div class="ring"></div></div>
+          </div>
+          <div class="content">
+            <div style="margin:4px 16px 0; height:236px; border-radius:14px; overflow:hidden; position:relative; border:1px solid #E5E3DC;">
+              <div class="canvas-photo">
+                <div class="layer-sky" style="background:#85B7EB; height:52%;"></div>
+                <div class="layer-mid" style="background:#639922; top:52%; height:26%;"></div>
+                <div class="layer-low" style="background:#1D9E75; top:78%; height:22%;"></div>
+              </div>
+              <div class="layer-sun" style="left:34px; top:24px; background:#FAC775;"></div>
+              <div class="wm-text" style="right:18px; bottom:46px;">© SAMPLE</div>
+
+              <div style="position:absolute; right:10px; bottom:38px; width:132px; height:38px;
+                          border:1.5px solid #378ADD; background:rgba(55,138,221,0.28);">
+                <div style="position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:2px; background:#FFFFFF; border:1.5px solid #378ADD;"></div>
+                <div style="position:absolute; right:-5px; top:-5px; width:10px; height:10px; border-radius:2px; background:#FFFFFF; border:1.5px solid #378ADD;"></div>
+                <div style="position:absolute; left:-5px; bottom:-5px; width:10px; height:10px; border-radius:2px; background:#FFFFFF; border:1.5px solid #378ADD;"></div>
+                <div style="position:absolute; right:-5px; bottom:-5px; width:10px; height:10px; border-radius:2px; background:#FFFFFF; border:1.5px solid #378ADD;"></div>
+              </div>
+
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+                <div style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.85); display:flex; align-items:center; justify-content:center;">
+                  <div style="width:0; height:0; border-left:15px solid #2C2C2A; border-top:10px solid transparent; border-bottom:10px solid transparent; margin-left:4px;"></div>
+                </div>
+              </div>
+              <div class="hint-tag" style="left:10px; top:10px;">00:03 / 00:12</div>
+            </div>
+
+            <div style="padding:18px 16px 0;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <span class="field-label">处理区间</span>
+                <span style="font-size:12px; color:#185FA5;">00:03 — 00:08</span>
+              </div>
+              <div style="position:relative;">
+                <div style="display:flex; gap:2px; height:44px; border-radius:7px; overflow:hidden;">
+                  <div style="flex:1; background:#5F5E5A;"></div>
+                  <div style="flex:1; background:#888780;"></div>
+                  <div style="flex:1; background:#B4B2A9;"></div>
+                  <div style="flex:1; background:#85B7EB;"></div>
+                  <div style="flex:1; background:#378ADD;"></div>
+                  <div style="flex:1; background:#97C459;"></div>
+                  <div style="flex:1; background:#639922;"></div>
+                  <div style="flex:1; background:#5DCAA5;"></div>
+                  <div style="flex:1; background:#1D9E75;"></div>
+                  <div style="flex:1; background:#3B6D11;"></div>
+                </div>
+                <div style="position:absolute; left:20%; width:50%; top:-5px; bottom:-5px; border:1.5px solid #185FA5;
+                            border-radius:7px; background:rgba(55,138,221,0.14);">
+                  <div style="position:absolute; left:-5px; top:50%; transform:translateY(-50%); width:8px; height:28px; border-radius:4px; background:#185FA5;"></div>
+                  <div style="position:absolute; right:-5px; top:50%; transform:translateY(-50%); width:8px; height:28px; border-radius:4px; background:#185FA5;"></div>
+                </div>
+                <div style="position:absolute; left:25%; top:-11px; bottom:-5px; width:2px; background:#E24B4A;"></div>
+              </div>
+            </div>
+
+            <div style="padding:20px 16px 0;">
+              <div class="field-label" style="margin-bottom:9px;">处理方式</div>
+              <div style="display:flex; gap:8px;">
+                <div class="chip on">模糊</div>
+                <div class="chip">马赛克</div>
+                <div class="chip">裁剪</div>
+                <div class="chip">智能填充</div>
+              </div>
+            </div>
+
+            <div style="margin:16px 16px 0;">
+              <div class="notice plain">
+                <div class="tx">视频需上传处理后端。仅处理选中区间，约需 20—40 秒。</div>
+              </div>
+            </div>
+
+            <div style="margin-top:auto; padding:0 16px 26px;">
+              <div class="btn-primary">开始处理</div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <div class="t">03 视频编辑页</div>
+          <div class="d">两处必需设计：<b>区域框选</b>（四角可拖拽）与<b>时间区间选择</b>。只处理有水印的几秒，否则整段转码的成本与耗时都会翻倍。</div>
+        </div>
+      </div>
+
+      <!-- ===== 4. 结果页 ===== -->
+      <div class="screen-item">
+        <div class="phone">
+          <div class="sbar"><span>9:41</span><span>●●●</span></div>
+          <div class="navbar">
+            <span class="act" style="font-size:17px;">×</span>
+            <span class="title" style="font-size:15px;">处理完成</span>
+            <div class="capsule"><div class="dots"></div><div class="sep"></div><div class="ring"></div></div>
+          </div>
+          <div class="content">
+            <div style="padding:8px 16px 0; display:flex; gap:12px; align-items:center;">
+              <div style="flex:1;">
+                <div style="height:200px; border-radius:11px; overflow:hidden; position:relative; border:1px solid #E5E3DC;">
+                  <div class="canvas-photo">
+                    <div class="layer-sky" style="background:#85B7EB; height:52%;"></div>
+                    <div class="layer-mid" style="background:#639922; top:52%; height:26%;"></div>
+                    <div class="layer-low" style="background:#1D9E75; top:78%; height:22%;"></div>
+                  </div>
+                  <div class="layer-sun" style="left:22px; top:18px; background:#FAC775; width:24px; height:24px;"></div>
+                  <div style="position:absolute; right:8px; bottom:8px; font-size:11px; color:#FFFFFF; letter-spacing:0.5px;">© SAMPLE</div>
+                </div>
+                <div style="text-align:center; font-size:12px; color:#B4B2A9; margin-top:8px;">处理前</div>
+              </div>
+              <div style="font-size:15px; color:#B4B2A9;">→</div>
+              <div style="flex:1;">
+                <div style="height:200px; border-radius:11px; overflow:hidden; position:relative; border:2px solid #378ADD;">
+                  <div class="canvas-photo">
+                    <div class="layer-sky" style="background:#85B7EB; height:52%;"></div>
+                    <div class="layer-mid" style="background:#639922; top:52%; height:26%;"></div>
+                    <div class="layer-low" style="background:#1D9E75; top:78%; height:22%;"></div>
+                  </div>
+                  <div class="layer-sun" style="left:22px; top:18px; background:#FAC775; width:24px; height:24px;"></div>
+                </div>
+                <div style="text-align:center; font-size:12px; color:#185FA5; margin-top:8px;">处理后</div>
+              </div>
+            </div>
+
+            <div style="padding:20px 16px 0; display:flex; gap:9px;">
+              <div class="metric"><div class="k">分辨率</div><div class="v">1080×1920</div></div>
+              <div class="metric"><div class="k">文件大小</div><div class="v">3.2 MB</div></div>
+              <div class="metric"><div class="k">耗时</div><div class="v">27 s</div></div>
+            </div>
+
+            <div style="margin:16px 16px 0;">
+              <div class="notice ok">
+                <div class="bar"></div>
+                <div class="tx">云端副本将在 1 小时后自动删除，相册文件长期保留。</div>
+              </div>
+            </div>
+
+            <div style="margin-top:auto; padding:0 16px 26px; display:flex; flex-direction:column; gap:10px;">
+              <div class="btn-primary">保存到相册</div>
+              <div style="display:flex; gap:10px;">
+                <div class="btn-ghost">分享给朋友</div>
+                <div class="btn-ghost">再处理一个</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <div class="t">04 结果页</div>
+          <div class="d">采用<b>并排对比</b>而非滑块对比——静态小图上滑块容易隐藏差异。右侧结果图用 2px 主色描边做强引导。</div>
+        </div>
+      </div>
+
+      <!-- ===== 5. 记录页 ===== -->
+      <div class="screen-item">
+        <div class="phone">
+          <div class="sbar"><span>9:41</span><span>●●●</span></div>
+          <div class="navbar">
+            <span class="title">处理记录</span>
+            <div class="capsule"><div class="dots"></div><div class="sep"></div><div class="ring"></div></div>
+          </div>
+          <div class="content">
+            <div style="margin:4px 16px 0; height:44px; border-radius:11px; background:#F1EFE8; display:flex;
+                        align-items:center; gap:9px; padding:0 14px;">
+              <div style="width:12px; height:12px; border:1.5px solid #B4B2A9; border-radius:50%;"></div>
+              <span style="font-size:13px; color:#B4B2A9;">搜索文件名或标签</span>
+            </div>
+
+            <div style="display:flex; gap:8px; padding:14px 16px 6px;">
+              <div class="chip on">全部</div>
+              <div class="chip">图片</div>
+              <div class="chip">视频</div>
+              <div class="chip">未保存</div>
+            </div>
+
+            <div style="flex:1; overflow:hidden; padding-top:8px;">
+
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+                <div class="thumb-sm" style="background:#B5D4F4;"><div class="ic-img"></div></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">IMG_20260924_1432.jpg</div>
+                  <div style="font-size:12px; color:#B4B2A9; margin-top:4px;">今天 14:32 · 涂抹遮盖</div>
+                </div>
+                <div class="badge ok">已保存</div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+                <div class="thumb-sm" style="background:#85B7EB;"><div class="ic-vid"></div></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">VID_20260924_1108.mp4</div>
+                  <div style="font-size:12px; color:#B4B2A9; margin-top:4px;">今天 11:08 · 区域模糊 · 27s</div>
+                </div>
+                <div class="badge ok">已保存</div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+                <div class="thumb-sm" style="background:#97C459;"><div class="ic-img"></div></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">样片_终版_v3.png</div>
+                  <div style="font-size:12px; color:#B4B2A9; margin-top:4px;">昨天 20:15 · 智能填充</div>
+                </div>
+                <div class="badge warn">未保存</div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+                <div class="thumb-sm" style="background:#B5D4F4;"><div class="ic-img"></div></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">分镜_第07场_参考.png</div>
+                  <div style="font-size:12px; color:#B4B2A9; margin-top:4px;">昨天 16:40 · 裁剪去边</div>
+                </div>
+                <div class="badge ok">已保存</div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+                <div class="thumb-sm" style="background:#85B7EB;"><div class="ic-vid"></div></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">外景素材_A007.mov</div>
+                  <div style="font-size:12px; color:#B4B2A9; margin-top:4px;">9月22日 · 区域马赛克</div>
+                </div>
+                <div class="badge ok">已保存</div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+                <div class="thumb-sm" style="background:#97C459;"><div class="ic-img"></div></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">封面_横版_定稿.png</div>
+                  <div style="font-size:12px; color:#B4B2A9; margin-top:4px;">9月22日 · 框选模糊</div>
+                </div>
+                <div class="badge ok">已保存</div>
+              </div>
+
+            </div>
+
+            <div class="tabbar">
+              <div class="tab"><div class="ic"></div><div class="lb">首页</div></div>
+              <div class="tab on"><div class="ic"></div><div class="lb">记录</div></div>
+              <div class="tab"><div class="ic" style="border-radius:50%;"></div><div class="lb">我的</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <div class="t">05 处理记录</div>
+          <div class="d">只展示<b>处理结果</b>，不展示原始文件——原图原视频只存在用户相册。这是隐私策略，也是审核加分项。</div>
+        </div>
+      </div>
+
+      <!-- ===== 6. 我的 ===== -->
+      <div class="screen-item">
+        <div class="phone">
+          <div class="sbar"><span>9:41</span><span>●●●</span></div>
+          <div class="navbar">
+            <span class="title">我的</span>
+            <div class="capsule"><div class="dots"></div><div class="sep"></div><div class="ring"></div></div>
+          </div>
+          <div class="content">
+            <div style="margin:4px 16px 0; display:flex; align-items:center; gap:14px; padding:16px;
+                        border-radius:14px; background:#F1EFE8;">
+              <div style="width:52px; height:52px; border-radius:50%; background:#B5D4F4; flex-shrink:0;"></div>
+              <div style="flex:1;">
+                <div style="font-size:15px; font-weight:500;">微信用户</div>
+                <div style="font-size:12px; color:#B4B2A9; margin-top:4px;">今日剩余 3 次 · 视频 1 次</div>
+              </div>
+              <div style="padding:6px 13px; border-radius:15px; font-size:12px; background:#185FA5; color:#FFFFFF;">升级</div>
+            </div>
+
+            <div style="padding:16px 16px 0; display:flex; gap:9px;">
+              <div class="metric"><div class="k">累计处理</div><div class="v">126</div></div>
+              <div class="metric"><div class="k">本月</div><div class="v">18</div></div>
+              <div class="metric"><div class="k">本地缓存</div><div class="v">42 MB</div></div>
+            </div>
+
+            <div style="padding:22px 16px 0;">
+              <div class="field-label" style="margin-bottom:6px;">功能与设置</div>
+              <div class="row-item"><span class="k">处理记录</span><span class="r">›</span></div>
+              <div class="row-item"><span class="k">我的水印模板</span><span class="r">3 个 ›</span></div>
+              <div class="row-item"><span class="k">清理本地缓存</span><span class="r">›</span></div>
+              <div class="row-item"><span class="k">使用说明</span><span class="r">›</span></div>
+              <div class="row-item"><span class="k">版权声明与隐私政策</span><span class="r">›</span></div>
+            </div>
+
+            <div style="margin-top:auto; text-align:center; font-size:12px; color:#B4B2A9; padding-bottom:12px;">版本 1.0.0</div>
+
+            <div class="tabbar">
+              <div class="tab"><div class="ic"></div><div class="lb">首页</div></div>
+              <div class="tab"><div class="ic"></div><div class="lb">记录</div></div>
+              <div class="tab on"><div class="ic" style="border-radius:50%;"></div><div class="lb">我的</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <div class="t">06 我的</div>
+          <div class="d">把<b>版权声明与隐私政策</b>放进列表常驻位置，而不是藏在关于页最底部。审核侧会检查这一项是否可直达。</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== 三、技术实现 ========== -->
+  <div class="sect">
+    <h2><span class="idx">03</span>技术实现链路</h2>
+    <div class="desc">图片与视频走两条完全不同的技术路线，这是本项目最重要的一条架构分界线。</div>
+
+    <table class="tech-table">
+      <thead>
+        <tr>
+          <th style="width:110px;">环节</th>
+          <th style="width:44%;">图片（本地处理）</th>
+          <th>视频（云端处理）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>获取文件</td>
+          <td><code>wx.chooseMedia</code>，可多选，sizeType 用 compressed</td>
+          <td><code>wx.chooseMedia</code>，限制 1 个，maxDuration ≤ 60s</td>
+        </tr>
+        <tr>
+          <td>处理位置</td>
+          <td>小程序端离屏 canvas，无需联网</td>
+          <td>上传云存储 → 云托管容器 → FFmpeg</td>
+        </tr>
+        <tr>
+          <td>核心算法</td>
+          <td>选区外扩 2px 后按模式重绘：<code>globalCompositeOperation</code> 做模糊/马赛克，简易 inpainting 做智能填充</td>
+          <td><code>delogo</code> 滤镜去水印，或 <code>boxblur</code> / <code>pixelize</code> 遮盖</td>
+        </tr>
+        <tr>
+          <td>转码</td>
+          <td>canvas 导出 PNG / JPEG，quality 0.92</td>
+          <td><code>libx264 -crf 23 -preset veryfast</code>，保持原始分辨率与帧率</td>
+        </tr>
+        <tr>
+          <td>耗时</td>
+          <td>1 秒内，无感知</td>
+          <td>20—40 秒（30s 视频），需进度反馈</td>
+        </tr>
+        <tr>
+          <td>成本</td>
+          <td>零</td>
+          <td>云托管按量计费，主要成本在 CPU 时长与云存储出流量</td>
+        </tr>
+        <tr>
+          <td>落地建议</td>
+          <td>一期全量实现，体验最顺</td>
+          <td><b>一期可先只做图片线</b>，视频线放到二期验证需求真伪</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:16px;">
+      <div class="notice plain">
+        <div class="tx">FFmpeg 无法跑在普通云函数里——云函数有执行时长上限且无二进制依赖安装能力。视频处理必须走<b>云托管</b>（容器），或自建 CVM。这是本项目最大的一个工程量估算偏差来源，务必提前确认。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 四、审核合规 ========== -->
+  <div class="sect">
+    <h2><span class="idx">04</span>审核风险与合规设计</h2>
+    <div class="desc">这一节不是法务套话——每一条都直接对应界面上的一个设计决策。</div>
+
+    <div class="risk hi">
+      <div class="h"><div class="dot"></div>高风险：功能定位本身</div>
+      <div class="b">"去水印"属于内容安全敏感地带，历史上同类小程序被批量下架。设计上的应对：<b>不做链接解析入口</b>、<b>不支持抖音/快手等平台域名</b>、首页常驻版权提示、功能描述统一表述为"清理自有素材水印"而非"去除水印"。类目建议选<b>工具 → 图片/视频处理</b>，不要选"内容社区"。</div>
+    </div>
+
+    <div class="risk md">
+      <div class="h"><div class="dot"></div>中风险：用户内容处理</div>
+      <div class="b">涉及上传用户内容，必须配置<b>内容安全接口</b>（<code>security.imgSecCheck</code> / <code>mediaCheckAsync</code>）对上传素材做机审，否则一旦被用于处理违规内容，主体要担责。设计上对应结果页的"云端副本 1 小时后自动删除"承诺——这个承诺必须在服务端用定时任务真实兑现，不能只写在界面上。</div>
+    </div>
+
+    <div class="risk md">
+      <div class="h"><div class="dot"></div>中风险：隐私协议</div>
+      <div class="b">小程序必须在<b>后台配置用户隐私保护指引</b>，声明收集的权限：相册（仅写入）、摄像头（不使用）、文件上传。未配置会导致"保存到相册"直接调不起来。设计上对应"我的"页那一行<b>版权声明与隐私政策</b>入口。</div>
+    </div>
+
+    <div class="risk lo">
+      <div class="h"><div class="dot"></div>低风险：付费与次数限制</div>
+      <div class="b">如果做"每日免费 3 次 + 付费解锁"，虚拟支付在 iOS 端<b>不能走微信支付</b>（苹果抽成规则），只能做次数包或会员订阅，且 iOS 端需隐藏支付入口。设计上对应"我的"页那个"升级"按钮——需要准备 iOS 隐藏态的版本。</div>
+    </div>
+  </div>
+
+  <!-- ========== 五、下一步 ========== -->
+  <div class="sect">
+    <h2><span class="idx">05</span>下一步</h2>
+    <div class="desc">设计稿确认后，工程实现可以按这个顺序推进，每一阶段都能独立跑通。</div>
+    <table class="tech-table">
+      <thead>
+        <tr><th style="width:80px;">阶段</th><th style="width:150px;">内容</th><th>交付物</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>一</td><td>工程骨架 + 图片线</td><td>6 个页面、canvas 图片处理引擎、云存储上传、记录列表。上传即可体验完整闭环</td></tr>
+        <tr><td>二</td><td>视频线</td><td>云托管容器 + FFmpeg 镜像、任务队列、进度轮询、结果回调</td></tr>
+        <tr><td>三</td><td>账号与次数</td><td>微信登录、每日次数限制、会员状态、iOS 支付隐藏</td></tr>
+        <tr><td>四</td><td>提审准备</td><td>内容安全接入、隐私指引配置、版权声明页、类目申报</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

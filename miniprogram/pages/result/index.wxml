@@ -1,0 +1,239 @@
+<view class="page">
+  <nav-bar showBack title="{{pageTitle}}" />
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="page-body">
+    <view class="skeleton sk-block"></view>
+    <view class="skeleton sk-line2"></view>
+    <view class="skeleton sk-line2"></view>
+  </view>
+
+  <!-- 错误 -->
+  <view wx:elif="{{error && status !== 'failed'}}" class="page-body">
+    <empty-state icon="error" title="无法加载结果" desc="{{error}}" />
+  </view>
+
+  <block wx:else>
+    <view class="page-body">
+      <!-- 状态横幅：让「处理完成 / 处理失败 / 处理中」一眼可见 -->
+      <view wx:if="{{bannerType}}" class="banner banner-{{bannerType}}">
+        <view class="banner-icon">{{bannerType === 'ok' ? '✓' : bannerType === 'fail' ? '!' : '…'}}</view>
+        <view class="banner-main">
+          <view class="banner-title">{{bannerTitle}}</view>
+          <view wx:if="{{bannerDesc}}" class="banner-desc">{{bannerDesc}}</view>
+        </view>
+      </view>
+
+      <!-- ================= 视频结果 ================= -->
+      <block wx:if="{{isVideo}}">
+        <!-- 对比模式切换：仅当原视频可用时显示 -->
+        <view wx:if="{{hasSource && outUrl}}" class="vseg">
+          <view
+            class="vseg-item {{vMode === 'compare' ? 'vseg-on' : ''}}"
+            data-mode="compare"
+            bindtap="switchVMode"
+          >前后对比</view>
+          <view
+            class="vseg-item {{vMode === 'single' ? 'vseg-on' : ''}}"
+            data-mode="single"
+            bindtap="switchVMode"
+          >只看结果</view>
+        </view>
+
+        <!-- 单播放器（只看结果） -->
+        <view wx:if="{{outUrl && vMode === 'single'}}" class="vwrap">
+          <video
+            id="vOut"
+            class="vplayer"
+            src="{{outUrl}}"
+            object-fit="contain"
+            show-center-play-btn
+            show-fullscreen-btn
+            show-play-btn
+            show-progress
+            enable-progress-gesture="{{true}}"
+            loop="{{loop}}"
+            muted="{{muted}}"
+            bindplay="onVPlay"
+            bindpause="onVPause"
+            bindended="onVEnded"
+            binderror="onVError"
+            bindtimeupdate="onVTime"
+          ></video>
+
+          <!-- 播放失败兜底 -->
+          <view wx:if="{{vError}}" class="vfallback">
+            <view class="vfallback-tx">{{vError}}</view>
+            <view class="vfallback-btn" bindtap="retryVideo">重新加载</view>
+          </view>
+        </view>
+
+        <!-- 双播放器对比 -->
+        <block wx:elif="{{outUrl && vMode === 'compare'}}">
+          <view class="vcmp-tip">拖动可分别查看 · 点「同步播放」一起播</view>
+
+          <view class="vcmp">
+            <view class="vcmp-col">
+              <view class="vcmp-stage">
+                <video
+                  id="vSrc"
+                  class="vplayer"
+                  src="{{srcUrl}}"
+                  object-fit="contain"
+                  show-center-play-btn
+                  show-fullscreen-btn
+                  show-play-btn
+                  enable-progress-gesture="{{true}}"
+                  bindplay="onSrcPlay"
+                  binderror="onSrcError"
+                ></video>
+                <view class="vcmp-badge">处理前</view>
+              </view>
+              <view wx:if="{{srcError}}" class="vcmp-err">原视频已不可用</view>
+            </view>
+
+            <view class="vcmp-col">
+              <view class="vcmp-stage vcmp-stage-on">
+                <video
+                  id="vOut2"
+                  class="vplayer"
+                  src="{{outUrl}}"
+                  object-fit="contain"
+                  show-center-play-btn
+                  show-fullscreen-btn
+                  show-play-btn
+                  enable-progress-gesture="{{true}}"
+                  bindplay="onVPlay"
+                  binderror="onVError"
+                ></video>
+                <view class="vcmp-badge vcmp-badge-on">处理后</view>
+              </view>
+            </view>
+          </view>
+
+          <view class="vcmp-actions">
+            <view class="vcmp-btn {{syncing ? 'vcmp-btn-on' : ''}}" bindtap="toggleSync">
+              {{syncing ? '停止同步' : '同步播放'}}
+            </view>
+            <view class="vcmp-btn" bindtap="replayBoth">从头播放</view>
+          </view>
+        </block>
+
+        <!-- 处理中 / 无结果 占位 -->
+        <view wx:else class="vwrap">
+          <view class="vph">
+            <view class="vph-title">{{processing ? '视频处理中' : '暂无结果'}}</view>
+            <view wx:if="{{processing}}" class="vph-sub">{{progressText || '正在排队…'}}</view>
+            <view wx:if="{{processing}}" class="vph-progress">
+              <view class="vph-progress-bar" style="width: {{progressPctDisp}}%"></view>
+            </view>
+            <view wx:if="{{processing}}" class="vph-pct">{{progressPctDisp}}%</view>
+            <view wx:if="{{processing}}" class="vph-tip">可以退出小程序，稍后从「记录」查看结果</view>
+          </view>
+        </view>
+
+        <!-- 播放控制条（仅单播放器模式） -->
+        <view wx:if="{{outUrl && vMode === 'single'}}" class="vbar">
+          <view class="vbar-time">{{curTimeText}} / {{durTimeText}}</view>
+          <view class="vbar-actions">
+            <view class="vbar-btn {{loop ? 'vbar-btn-on' : ''}}" bindtap="toggleLoop">
+              {{loop ? '循环开' : '循环关'}}
+            </view>
+            <view class="vbar-btn" bindtap="toggleMute">{{muted ? '取消静音' : '静音'}}</view>
+          </view>
+        </view>
+      </block>
+
+      <!-- ================= 图片结果：左右对比 ================= -->
+      <view wx:else class="cmp">
+        <view class="cmp-col">
+          <view class="cmp-box">
+            <image wx:if="{{srcUrl}}" class="cmp-img" src="{{srcUrl}}" mode="aspectFit" bindtap="preview" />
+            <view wx:else class="cmp-ph">原图</view>
+          </view>
+          <view class="cmp-cap">处理前</view>
+        </view>
+
+        <view class="cmp-arrow">→</view>
+
+        <view class="cmp-col">
+          <view class="cmp-box cmp-box-on" bindtap="preview">
+            <image wx:if="{{outUrl}}" class="cmp-img" src="{{outUrl}}" mode="aspectFit" />
+            <view wx:else class="cmp-ph">处理后</view>
+          </view>
+          <view class="cmp-cap cmp-cap-on">处理后</view>
+        </view>
+      </view>
+
+      <!-- 失败 -->
+      <view wx:if="{{status === 'failed'}}" class="sect">
+        <view class="notice danger">
+          <view class="notice-bar"></view>
+          <view class="notice-tx">{{error}}</view>
+        </view>
+      </view>
+
+      <!-- 参数 -->
+      <view class="sect">
+        <view class="metric-row">
+          <view class="metric">
+            <view class="metric-k">分辨率</view>
+            <view class="metric-v metric-v-sm">{{dimText}}</view>
+          </view>
+          <view class="metric">
+            <view class="metric-k">格式</view>
+            <view class="metric-v metric-v-sm">{{formatLabel || '—'}}</view>
+          </view>
+          <view class="metric">
+            <view class="metric-k">处理方式</view>
+            <view class="metric-v metric-v-sm">{{modeLabel || '—'}}</view>
+          </view>
+          <view class="metric">
+            <view class="metric-k">文件大小</view>
+            <view class="metric-v metric-v-sm">{{sizeText}}</view>
+          </view>
+        </view>
+
+        <!-- 下载默认文件名（时间 + 类型） -->
+        <view wx:if="{{status === 'done'}}" class="fname">
+          <view class="fname-k">下载文件名</view>
+          <view class="fname-v ellipsis">{{saveName}}</view>
+        </view>
+      </view>
+
+      <!-- 提示 -->
+      <view wx:if="{{status === 'done'}}" class="sect">
+        <view class="notice ok">
+          <view class="notice-bar"></view>
+          <view class="notice-tx">{{isVideo ? '云端副本将在 1 小时内自动删除，保存到相册的文件长期保留。' : '原图未上传，处理全程在你的设备上完成。'}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{status === 'failed'}}" class="sect">
+        <view class="btn-row">
+          <view class="btn-ghost" bindtap="retry">重新处理</view>
+          <view class="btn-ghost" bindtap="removeJob">删除记录</view>
+        </view>
+      </view>
+
+      <view class="page-bottom-hold"></view>
+    </view>
+
+    <!-- 底部操作 -->
+    <view wx:if="{{status === 'done'}}" class="bottom-bar">
+      <view wx:if="{{progressText}}" class="dl-progress">{{progressText}}</view>
+      <view class="btn-row">
+        <view class="btn-ghost" bindtap="again">{{isVideo ? '再处理视频' : '再处理图片'}}</view>
+        <view class="btn-ghost" bindtap="goRecords">查看记录</view>
+      </view>
+      <view class="btn-row mt-16">
+        <view class="btn-ghost {{downloading ? 'disabled' : ''}}" bindtap="download">
+          {{downloading ? '下载中…' : '下载'}}
+        </view>
+        <view class="btn-primary {{saving ? 'disabled' : ''}}" bindtap="save">
+          {{saving ? '保存中…' : '保存到相册'}}
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

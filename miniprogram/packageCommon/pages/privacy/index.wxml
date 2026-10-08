@@ -1,0 +1,14 @@
+<view class="page">
+  <nav-bar showBack title="版权声明与隐私政策" />
+
+  <view class="page-body">
+    <view class="updated">最近更新：{{updatedAt}}</view>
+
+    <view wx:for="{{sections}}" wx:key="t" class="sec">
+      <view class="sec-t">{{item.t}}</view>
+      <view wx:for="{{item.ps}}" wx:for-item="p" wx:key="*this" class="sec-p">{{p}}</view>
+    </view>
+
+    <view class="page-bottom-hold"></view>
+  </view>
+</view>

@@ -1,0 +1,10 @@
+{
+  "name": "admin",
+  "version": "1.0.0",
+  "description": "管理后台统一入口（小程序端 + Web 端）",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

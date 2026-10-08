@@ -1,0 +1,84 @@
+.mb {
+  margin-bottom: 20rpx;
+}
+
+/* 步骤 */
+.step {
+  display: flex;
+  gap: 24rpx;
+  padding: 26rpx 0;
+}
+
+.step-n {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: #e6f1fb;
+  color: #185fa5;
+  font-size: 26rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4rpx;
+}
+
+.step-t {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+}
+
+.step-d {
+  font-size: 25rpx;
+  color: #5f5e5a;
+  line-height: 1.7;
+  margin-top: 8rpx;
+}
+
+/* 处理方式 */
+.mode-item {
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f1efe8;
+}
+
+.mode-item:last-child {
+  border-bottom: none;
+}
+
+.mode-k {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+}
+
+.mode-d {
+  font-size: 25rpx;
+  color: #5f5e5a;
+  line-height: 1.7;
+  margin-top: 8rpx;
+}
+
+/* 常见问题 */
+.faq {
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f1efe8;
+}
+
+.faq:last-child {
+  border-bottom: none;
+}
+
+.faq-q {
+  font-size: 27rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+}
+
+.faq-a {
+  font-size: 25rpx;
+  color: #5f5e5a;
+  line-height: 1.75;
+  margin-top: 10rpx;
+}

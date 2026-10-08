@@ -1,0 +1,13 @@
+<view class="sc-row">
+  <view
+    wx:for="{{items}}"
+    wx:key="k"
+    class="sc {{item.accent ? 'sc-accent' : ''}}"
+    data-index="{{index}}"
+    bindtap="onItem"
+  >
+    <view class="sc-k ellipsis">{{item.k}}</view>
+    <view class="sc-v ellipsis">{{item.v}}</view>
+    <view wx:if="{{item.sub}}" class="sc-sub ellipsis">{{item.sub}}</view>
+  </view>
+</view>

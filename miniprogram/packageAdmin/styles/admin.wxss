@@ -1,0 +1,313 @@
+/* 管理后台公共样式（各页 @import 使用） */
+
+/* 搜索框 */
+.search-wrap {
+  padding: 8rpx 32rpx 0;
+}
+
+.search {
+  height: 88rpx;
+  border-radius: 22rpx;
+  background: #f1efe8;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 0 26rpx;
+}
+
+.search-ic {
+  width: 24rpx;
+  height: 24rpx;
+  border: 3rpx solid #b4b2a9;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.search-ic::after {
+  content: '';
+  position: absolute;
+  right: -9rpx;
+  bottom: -6rpx;
+  width: 12rpx;
+  height: 3rpx;
+  background: #b4b2a9;
+  border-radius: 2rpx;
+  transform: rotate(45deg);
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #2c2c2a;
+  height: 100%;
+}
+
+.search-clear {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: #d3d1c7;
+  color: #ffffff;
+  font-size: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 筛选行 */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 24rpx 32rpx 8rpx;
+  flex-wrap: wrap;
+}
+
+.filter-row .count {
+  margin-left: auto;
+  font-size: 23rpx;
+  color: #b4b2a9;
+}
+
+/* 骨架 */
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  padding: 26rpx 0;
+}
+
+.sk-av {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sk-thumb {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+}
+
+.sk-t1 {
+  height: 28rpx;
+  width: 50%;
+  border-radius: 8rpx;
+}
+
+.sk-t2 {
+  height: 22rpx;
+  width: 70%;
+  border-radius: 8rpx;
+  margin-top: 14rpx;
+}
+
+/* 列表卡片容器 */
+.list-card {
+  background: #ffffff;
+  border: 1rpx solid #e5e3dc;
+  border-radius: 28rpx;
+  padding: 0 32rpx;
+  margin-top: 12rpx;
+}
+
+/* 用户行 */
+.u-row {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f1efe8;
+}
+
+.u-row:last-child {
+  border-bottom: none;
+}
+
+.u-av {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: #e6f1fb;
+  flex-shrink: 0;
+}
+
+.u-av-ph {
+  background: #e6f1fb;
+}
+
+.u-line1 {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.u-name {
+  font-size: 29rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+  max-width: 300rpx;
+}
+
+.u-role {
+  font-size: 20rpx;
+  color: #185fa5;
+  background: #e6f1fb;
+  padding: 2rpx 12rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+
+.u-line2 {
+  font-size: 24rpx;
+  color: #5f5e5a;
+  margin-top: 8rpx;
+}
+
+.u-line3 {
+  font-size: 22rpx;
+  color: #b4b2a9;
+  margin-top: 6rpx;
+}
+
+/* 任务行 */
+.j-row {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f1efe8;
+}
+
+.j-row:last-child {
+  border-bottom: none;
+}
+
+.j-top {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.j-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+  flex: 1;
+  min-width: 0;
+}
+
+.j-meta {
+  font-size: 23rpx;
+  color: #b4b2a9;
+  margin-top: 10rpx;
+}
+
+.j-error {
+  font-size: 23rpx;
+  color: #a32d2d;
+  margin-top: 8rpx;
+}
+
+.j-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.j-btn {
+  height: 62rpx;
+  padding: 0 30rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e5e3dc;
+  background: #ffffff;
+  color: #5f5e5a;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.j-btn.danger {
+  border-color: #f7c1c1;
+  color: #a32d2d;
+}
+
+.j-btn.primary {
+  border-color: #b5d4f4;
+  color: #185fa5;
+}
+
+/* 详情块 */
+.detail-card {
+  background: #ffffff;
+  border: 1rpx solid #e5e3dc;
+  border-radius: 28rpx;
+  padding: 28rpx 32rpx;
+  margin-top: 20rpx;
+}
+
+.d-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f8f7f4;
+}
+
+.d-row:last-child {
+  border-bottom: none;
+}
+
+.d-k {
+  font-size: 26rpx;
+  color: #b4b2a9;
+  flex-shrink: 0;
+}
+
+.d-v {
+  font-size: 26rpx;
+  color: #2c2c2a;
+  text-align: right;
+  word-break: break-all;
+  flex: 1;
+}
+
+.d-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.d-btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 27rpx;
+  border: 1rpx solid #e5e3dc;
+  background: #ffffff;
+  color: #5f5e5a;
+}
+
+.d-btn.primary {
+  background: #185fa5;
+  border-color: #185fa5;
+  color: #ffffff;
+}
+
+.d-btn.danger {
+  background: #a32d2d;
+  border-color: #a32d2d;
+  color: #ffffff;
+}
+
+.d-btn.warn {
+  background: #faeeda;
+  border-color: #ef9f27;
+  color: #854f0b;
+}

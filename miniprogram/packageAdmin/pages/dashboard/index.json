@@ -1,0 +1,10 @@
+{
+  "usingComponents": {
+    "nav-bar": "/components/nav-bar/index",
+    "stat-card": "/components/stat-card/index"
+  },
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "backgroundColor": "#F5F5F3"
+}

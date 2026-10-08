@@ -1,0 +1,83 @@
+<view class="page">
+  <nav-bar showBack title="任务管理" />
+
+  <view class="search-wrap">
+    <view class="search">
+      <view class="search-ic"></view>
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索文件名或用户"
+        placeholder-class="field-placeholder"
+        confirm-type="search"
+        bindinput="onSearchInput"
+      />
+      <view wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">×</view>
+    </view>
+  </view>
+
+  <view class="filter-row">
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="chip {{item.active ? 'on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="switchFilter"
+    >
+      {{item.label}}
+    </view>
+    <view class="count">共 {{total}}</view>
+  </view>
+
+  <view class="page-body">
+    <block wx:if="{{loading}}">
+      <view wx:for="{{skeletonRows}}" wx:key="*this" class="sk-row">
+        <view class="skeleton sk-thumb"></view>
+        <view class="flex-1">
+          <view class="skeleton sk-t1"></view>
+          <view class="skeleton sk-t2"></view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{list.length}}">
+      <view class="list-card">
+        <view wx:for="{{list}}" wx:key="id" class="j-row">
+          <view class="j-top" data-id="{{item.id}}" bindtap="openJob">
+            <view class="j-name ellipsis">{{item.fileName}}</view>
+            <view class="badge {{item.badgeClass}}">{{item.statusLabel}}</view>
+          </view>
+          <view class="j-meta" data-id="{{item.id}}" bindtap="openJob">
+            {{item.typeLabel}} · {{item.modeLabel}} · {{item.timeText}} · {{item.sizeText}}
+          </view>
+          <view class="j-owner" data-id="{{item.id}}" bindtap="openJob">{{item.ownerText}}</view>
+          <view wx:if="{{item.error}}" class="j-error">{{item.error}}</view>
+
+          <view class="j-actions">
+            <view
+              wx:if="{{item.canRetry}}"
+              class="j-btn primary"
+              data-id="{{item.id}}"
+              catchtap="retryJob"
+            >
+              重试
+            </view>
+            <view class="j-btn danger" data-id="{{item.id}}" catchtap="removeJob">删除</view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{loadingMore}}" class="loading-more">加载中…</view>
+      <view wx:elif="{{!hasMore}}" class="loading-more">已经到底了</view>
+    </block>
+
+    <empty-state
+      wx:else
+      icon="box"
+      title="没有匹配的任务"
+      desc="换个筛选条件试试"
+    />
+
+    <view class="page-bottom-hold"></view>
+  </view>
+</view>

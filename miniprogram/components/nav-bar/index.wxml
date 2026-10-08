@@ -1,0 +1,18 @@
+<view class="nb" style="background:{{bg}};height:{{navHeight}}px;">
+  <view style="height:{{statusBarHeight}}px;"></view>
+  <view class="nb-inner {{border ? 'nb-border' : ''}}">
+    <view class="nb-left">
+      <view wx:if="{{showBack}}" class="nb-back" bindtap="onBack" hover-class="nb-back-hover">
+        <view class="nb-arrow"></view>
+      </view>
+      <slot name="left"></slot>
+    </view>
+
+    <view class="nb-title {{centered ? 'nb-center' : ''}}">{{title}}</view>
+
+    <view class="nb-right">
+      <slot name="right"></slot>
+    </view>
+  </view>
+</view>
+<view wx:if="{{placeholder}}" style="height:{{navHeight}}px;"></view>

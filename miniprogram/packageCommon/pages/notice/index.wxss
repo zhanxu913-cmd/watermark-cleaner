@@ -1,0 +1,30 @@
+.sk-block {
+  height: 300rpx;
+  border-radius: 24rpx;
+  margin-top: 20rpx;
+}
+
+.notice-body {
+  background: #ffffff;
+  border: 1rpx solid #e5e3dc;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  font-size: 28rpx;
+  color: #2c2c2a;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.copy-btn {
+  margin-top: 28rpx;
+  height: 84rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid #e5e3dc;
+  background: #ffffff;
+  color: #5f5e5a;
+  font-size: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

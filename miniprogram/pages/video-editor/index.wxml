@@ -1,0 +1,134 @@
+<view class="editor">
+  <nav-bar showBack title="视频去水印" />
+
+  <!-- 区域预览：video 与 canvas 同层共存，播放 / 暂停 / 框选互不打断 -->
+  <view class="stage">
+    <video
+      wx:if="{{src}}"
+      id="vEdit"
+      class="stage-video"
+      src="{{src}}"
+      object-fit="contain"
+      show-center-play-btn="{{false}}"
+      show-play-btn="{{false}}"
+      show-fullscreen-btn="{{false}}"
+      show-progress="{{false}}"
+      show-bottom-progress="{{false}}"
+      enable-progress-gesture="{{false}}"
+      controls="{{false}}"
+      muted="{{vMuted}}"
+      binderror="onEditError"
+      bindtimeupdate="onEditTime"
+      bindplay="onEditPlay"
+      bindpause="onEditPause"
+      bindended="onEditEnded"
+    ></video>
+    <image wx:if="{{!src && thumbSrc}}" class="stage-img" src="{{thumbSrc}}" mode="aspectFit" />
+    <view wx:if="{{!src && !thumbSrc}}" class="stage-fallback">无法读取视频画面<br />请返回重新选择</view>
+    <view wx:if="{{vError}}" class="stage-fallback">播放失败：{{vError}}</view>
+
+    <!-- 透明热区：上方留出 canvas 的拖拽区，只接管 canvas 未覆盖的角落，避免与 canvas 抢事件 -->
+    <view
+      class="stage-hit"
+      bindtap="togglePlay"
+      bindlongpress="onStageLongPress"
+    ></view>
+
+    <!-- 选区画布（透明背景，叠在 video 之上；未显示选区时整层可穿透） -->
+    <canvas
+      type="2d"
+      id="vCanvas"
+      class="stage-canvas {{hasRegion ? '' : 'stage-canvas-pass'}}"
+      disable-scroll
+      bindtouchstart="onRegionStart"
+      catchtouchmove="onRegionMove"
+      bindtouchend="onRegionEnd"
+      bindtouchcancel="onRegionEnd"
+    ></canvas>
+
+    <!-- 播放状态角标 -->
+    <view class="stage-badge">{{playing ? '播放中' : '已暂停'}}</view>
+
+    <!-- 播放控制条 -->
+    <view class="stage-bar">
+      <view class="sbar-btn primary" bindtap="togglePlay">{{playing ? '暂停' : '播放'}}</view>
+      <view class="sbar-btn" bindtap="toggleRegion">{{hasRegion ? '隐藏框' : '框选'}}</view>
+      <view class="sbar-btn" bindtap="toggleMuted">{{vMuted ? '取消静音' : '静音'}}</view>
+      <view class="sbar-btn" bindtap="previewVideo">全屏</view>
+    </view>
+  </view>
+
+  <!-- 进度：点任意位置跳转 -->
+  <view class="panel">
+    <view class="field-label">
+      <text>处理区间</text>
+      <text class="hl">{{startText}} — {{endText}}</text>
+    </view>
+
+    <view
+      class="tl"
+      id="timeline"
+      bindtouchstart="onTlStart"
+      catchtouchmove="onTlMove"
+      bindtouchend="onTlEnd"
+      bindtouchcancel="onTlEnd"
+    >
+      <view class="tl-track"></view>
+      <view class="tl-sel" style="left:{{selLeft}}%;width:{{selWidth}}%"></view>
+      <view class="tl-h" style="left:{{selLeft}}%"></view>
+      <view class="tl-h" style="left:{{selLeft + selWidth}}%"></view>
+      <view class="tl-cursor" style="left:{{playCursor}}%"></view>
+    </view>
+
+    <view class="tl-foot">
+      <text class="tl-time">{{playTimeText}}</text>
+      <text class="tl-mid">{{tlMidText}}</text>
+      <text class="tl-time">{{durationText}}</text>
+    </view>
+
+    <view class="tl-actions">
+      <view class="link" bindtap="applyFullRange">全片处理</view>
+      <view class="link" bindtap="playSelection">播放选区</view>
+      <view class="link" bindtap="seekToEnd">定位终点</view>
+    </view>
+  </view>
+
+  <!-- 处理方式 -->
+  <view class="panel">
+    <view class="field-label">
+      <text>处理方式</text>
+      <text class="mode-desc">智能去水印</text>
+    </view>
+    <view class="notice plain">
+      <view class="notice-tx">按水印周围的画面自动推算填充，无需选择，效果最好。</view>
+    </view>
+  </view>
+
+  <!-- 说明 -->
+  <view class="panel">
+    <view class="notice plain">
+      <view class="notice-tx">{{queueHint}}处理完成后云端原件会在 1 小时内自动删除。</view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <view
+      class="btn-primary {{submitting ? 'disabled' : ''}}"
+      bindtap="submit"
+    >
+      开始处理
+    </view>
+  </view>
+
+  <!-- 提交遮罩 -->
+  <view wx:if="{{submitting}}" class="mask">
+    <view class="mask-card">
+      <view class="mask-label">{{progressLabel}}</view>
+      <view class="bar">
+        <view class="bar-in" style="width:{{progress}}%"></view>
+      </view>
+      <view class="mask-pct">{{progress}}%</view>
+      <view class="mask-tip">请保持小程序在前台，上传中断可重新提交</view>
+    </view>
+  </view>
+</view>

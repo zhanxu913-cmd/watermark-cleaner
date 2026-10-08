@@ -1,0 +1,63 @@
+<view class="page">
+  <nav-bar showBack title="使用说明" />
+
+  <view class="page-body">
+    <!-- 版权提示 -->
+    <view class="sect">
+      <view class="notice warn">
+        <view class="notice-bar"></view>
+        <view class="notice-tx">请仅处理你拥有版权的素材。去除他人作品上的水印可能构成侵权，责任由使用者承担。</view>
+      </view>
+    </view>
+
+    <!-- 使用步骤 -->
+    <view class="sect">
+      <view class="t-card mb">三步完成</view>
+      <view
+        wx:for="{{steps}}"
+        wx:key="n"
+        class="step"
+      >
+        <view class="step-n">{{item.n}}</view>
+        <view class="flex-1">
+          <view class="step-t">{{item.t}}</view>
+          <view class="step-d">{{item.d}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 填充方式 -->
+    <view class="sect">
+      <view class="t-card mb">四种处理方式怎么选</view>
+      <view class="card">
+        <view wx:for="{{modes}}" wx:key="k" class="mode-item">
+          <view class="mode-k">{{item.k}}</view>
+          <view class="mode-d">{{item.d}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 常见问题 -->
+    <view class="sect">
+      <view class="t-card mb">常见问题</view>
+      <view class="card">
+        <view wx:for="{{faqs}}" wx:key="q" class="faq">
+          <view class="faq-q">{{item.q}}</view>
+          <view class="faq-a">{{item.a}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 隐私入口 -->
+    <view class="sect">
+      <view class="card">
+        <view class="row-item" bindtap="goPrivacy">
+          <view class="row-k">版权声明与隐私政策</view>
+          <view class="row-r"><text class="arrow">›</text></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="page-bottom-hold"></view>
+  </view>
+</view>

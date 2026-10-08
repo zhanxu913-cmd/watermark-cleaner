@@ -1,0 +1,10 @@
+{
+  "name": "initdb",
+  "version": "1.0.0",
+  "description": "一次性初始化：创建集合、写入全局配置、生成后台密钥",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

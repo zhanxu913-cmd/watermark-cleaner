@@ -1,0 +1,49 @@
+{
+  "miniprogramRoot": "miniprogram/",
+  "compileType": "miniprogram",
+  "projectname": "watermark-cleaner",
+  "appid": "wxa6643022f6af6e43",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": true,
+    "nodeModules": false,
+    "packNpmManually": false,
+    "coverView": true,
+    "showShadowRootInWxmlPanel": true,
+    "useCompilerPlugins": false,
+    "ignoreUploadUnusedFiles": true
+  },
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "首页",
+          "pathName": "pages/index/index",
+          "query": "",
+          "scene": null
+        },
+        {
+          "name": "管理后台",
+          "pathName": "packageAdmin/pages/dashboard/index",
+          "query": "",
+          "scene": null
+        }
+      ]
+    }
+  },
+  "packOptions": {
+    "ignore": [
+      { "type": "folder", "value": "server" },
+      { "type": "folder", "value": "cloudfunctions" },
+      { "type": "folder", "value": "video-service" },
+      { "type": "folder", "value": "admin-web" },
+      { "type": "folder", "value": "design" },
+      { "type": "folder", "value": "docs" }
+    ],
+    "include": []
+  }
+}

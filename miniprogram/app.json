@@ -1,0 +1,76 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/image-editor/index",
+    "pages/video-editor/index",
+    "pages/result/index",
+    "pages/records/index",
+    "pages/mine/index"
+  ],
+  "subPackages": [
+    {
+      "root": "packageCommon",
+      "name": "common",
+      "pages": [
+        "pages/about/index",
+        "pages/privacy/index",
+        "pages/notice/index"
+      ]
+    },
+    {
+      "root": "packageAdmin",
+      "name": "admin",
+      "pages": [
+        "pages/dashboard/index",
+        "pages/users/index",
+        "pages/user-detail/index",
+        "pages/jobs/index",
+        "pages/config/index",
+        "pages/logs/index"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "all",
+      "packages": ["common"]
+    },
+    "pages/mine/index": {
+      "network": "all",
+      "packages": ["common"]
+    }
+  },
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "水印清理",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F5F3",
+    "backgroundColorTop": "#F5F5F3",
+    "backgroundColorBottom": "#F5F5F3"
+  },
+  "tabBar": {
+    "color": "#B4B2A9",
+    "selectedColor": "#185FA5",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/records/index",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

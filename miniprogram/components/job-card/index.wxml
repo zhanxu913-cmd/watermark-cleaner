@@ -1,0 +1,52 @@
+<view
+  class="jc"
+  bindtap="onTap"
+  bindlongpress="onLongPress"
+  hover-class="jc-hover"
+  hover-stay-time="80"
+>
+  <view wx:if="{{selectable}}" class="jc-check {{selected ? 'on' : ''}}">
+    <view wx:if="{{selected}}" class="jc-tick"></view>
+  </view>
+
+  <view class="jc-thumb {{isVideo ? 'jc-thumb-v' : ''}}">
+    <image
+      wx:if="{{coverUrl}}"
+      class="jc-img"
+      src="{{coverUrl}}"
+      mode="aspectFill"
+      lazy-load
+    />
+    <view wx:else class="jc-ph">
+      <view wx:if="{{isVideo}}" class="jc-ph-play"></view>
+      <view wx:else class="jc-ph-img"></view>
+    </view>
+
+    <!-- 视频封面中央播放按钮 -->
+    <view wx:if="{{isVideo && hasCover}}" class="jc-play">
+      <view class="jc-play-tri"></view>
+    </view>
+
+    <!-- 时长角标（右下） -->
+    <view wx:if="{{isVideo && durText}}" class="jc-dur">{{durText}}</view>
+
+    <!-- 类型标签（左下） -->
+    <view class="jc-tag">{{isVideo ? '视频' : '图片'}}</view>
+  </view>
+
+  <view class="jc-main">
+    <view class="jc-name ellipsis">{{job.fileName || '未命名素材'}}</view>
+    <view wx:if="{{formatLabel || specText}}" class="jc-chips">
+      <text wx:if="{{formatLabel}}" class="jc-chip">{{formatLabel}}</text>
+      <text wx:if="{{specText}}" class="jc-chip">{{specText}}</text>
+    </view>
+    <view class="jc-meta ellipsis">{{metaText}}</view>
+    <view wx:if="{{showError}}" class="jc-err ellipsis">{{job.error}}</view>
+  </view>
+
+  <view wx:if="{{showStatus}}" class="jc-right">
+    <view class="badge {{badgeClass}}">{{statusLabel}}</view>
+  </view>
+
+  <view wx:if="{{canDownload}}" class="jc-dl" catchtap="onDownload">下载</view>
+</view>

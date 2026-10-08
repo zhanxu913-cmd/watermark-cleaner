@@ -1,0 +1,235 @@
+<view class="page">
+  <nav-bar showBack title="系统配置" />
+
+  <!-- Tab -->
+  <view class="tabs">
+    <view
+      class="tab-item {{tab === 'settings' ? 'on' : ''}}"
+      data-tab="settings"
+      bindtap="switchTab"
+    >
+      全局设置
+    </view>
+    <view
+      class="tab-item {{tab === 'admins' ? 'on' : ''}}"
+      data-tab="admins"
+      bindtap="switchTab"
+    >
+      管理员
+    </view>
+  </view>
+
+  <view class="page-body">
+    <block wx:if="{{loading}}">
+      <view class="skeleton sk-big"></view>
+      <view class="skeleton sk-big"></view>
+    </block>
+
+    <!-- ============ 全局设置 ============ -->
+    <block wx:elif="{{tab === 'settings'}}">
+      <view wx:if="{{!canEdit}}" class="notice warn mt-20">
+        <view class="notice-bar"></view>
+        <view class="notice-tx">你是运营角色，只能查看配置。修改需要超级管理员权限。</view>
+      </view>
+
+      <view class="group">
+        <view class="group-t">配额</view>
+        <view class="detail-card">
+          <view class="field">
+            <view class="field-label"><text>每日免费图片次数</text></view>
+            <input class="field-input" type="number" value="{{form.freeImagePerDay}}"
+              data-key="freeImagePerDay" bindinput="onInput" />
+          </view>
+          <view class="field">
+            <view class="field-label"><text>每日免费视频次数</text></view>
+            <input class="field-input" type="number" value="{{form.freeVideoPerDay}}"
+              data-key="freeVideoPerDay" bindinput="onInput" />
+          </view>
+        </view>
+      </view>
+
+      <view class="group">
+        <view class="group-t">视频处理</view>
+        <view class="detail-card">
+          <view class="sw-row">
+            <view class="flex-1">
+              <view class="sw-t">启用视频处理</view>
+              <view class="sw-d">需后端服务器已安装 FFmpeg（用 /healthz 或「视频服务探测」验证）</view>
+            </view>
+            <switch checked="{{form.videoServiceEnabled}}" color="#0F6E56"
+              data-key="videoServiceEnabled" bindchange="onSwitch" />
+          </view>
+
+          <view class="field mt-20">
+            <view class="field-label"><text>单条视频最长时长（秒）</text></view>
+            <input class="field-input" type="number" value="{{form.maxVideoDuration}}"
+              data-key="maxVideoDuration" bindinput="onInput" />
+          </view>
+
+          <view class="field">
+            <view class="field-label"><text>单个视频大小上限（MB）</text></view>
+            <input class="field-input" type="number" value="{{form.maxVideoSizeMB}}"
+              data-key="maxVideoSizeMB" bindinput="onInput" />
+          </view>
+
+          <view class="field">
+            <view class="field-label"><text>云端文件保留时长（小时）</text><text>到期自动删除</text></view>
+            <input class="field-input" type="number" value="{{form.cloudKeepHours}}"
+              data-key="cloudKeepHours" bindinput="onInput" />
+          </view>
+        </view>
+      </view>
+
+      <view class="group">
+        <view class="group-t">内容与合规</view>
+        <view class="detail-card">
+          <view class="field">
+            <view class="field-label"><text>版权提示文案</text><text>首页常驻显示</text></view>
+            <textarea class="field-textarea" value="{{form.copyrightTip}}"
+              data-key="copyrightTip" bindinput="onInput" auto-height />
+          </view>
+
+          <view class="field">
+            <view class="field-label"><text>平台公告</text><text>展示在「我的 → 平台公告」</text></view>
+            <textarea class="field-textarea" value="{{form.globalNotice}}"
+              placeholder="留空则不显示公告" placeholder-class="field-placeholder"
+              data-key="globalNotice" bindinput="onInput" auto-height />
+          </view>
+
+          <view class="field">
+            <view class="field-label"><text>维护通知</text><text>非空时在公告页以警示样式展示</text></view>
+            <textarea class="field-textarea" value="{{form.maintenanceNotice}}"
+              placeholder="如：系统维护中，预计 22:00 恢复"
+              placeholder-class="field-placeholder"
+              data-key="maintenanceNotice" bindinput="onInput" auto-height />
+          </view>
+        </view>
+      </view>
+
+      <view class="group">
+        <view class="group-t">安全与对接</view>
+        <view class="detail-card">
+          <view class="field">
+            <view class="field-label">
+              <text>后台访问密钥</text>
+              <text>改完务必自己记牢，下次登录要用</text>
+            </view>
+            <input class="field-input" value="{{form.adminKey}}"
+              placeholder="留空或修改为新的密钥" placeholder-class="field-placeholder"
+              data-key="adminKey" bindinput="onInput" />
+          </view>
+
+          <view class="field">
+            <view class="field-label"><text>新增用户注册</text><text>关闭后新用户无法进入</text></view>
+            <view class="sw-inline">
+              <switch checked="{{form.registerEnabled}}" color="#185FA5"
+                data-key="registerEnabled" bindchange="onSwitch" />
+            </view>
+          </view>
+
+          <view wx:if="{{!canEdit}}" class="notice info mt-20">
+            <view class="notice-bar"></view>
+            <view class="notice-tx">密钥字段仅超级管理员可见，运营角色看到的是空值，请勿据此判断密钥已清空。</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="d-actions">
+        <view class="d-btn" bindtap="resetDefaults">恢复默认</view>
+        <view class="d-btn primary" bindtap="save">
+          {{saving ? '保存中…' : '保存配置'}}
+        </view>
+      </view>
+    </block>
+
+    <!-- ============ 管理员 ============ -->
+    <block wx:else>
+      <view class="key-card" bindtap="copyKey">
+        <view class="flex-1">
+          <view class="key-t">当前后台访问密钥</view>
+          <view class="key-d">点击复制，可用于 Web 管理后台登录</view>
+        </view>
+        <view class="key-btn">复制</view>
+      </view>
+
+      <view class="group">
+        <view class="group-t">管理员列表（{{admins.length}}）</view>
+        <view class="list-card">
+          <view wx:for="{{admins}}" wx:key="openid" class="a-row">
+            <view class="flex-1">
+              <view class="a-name">{{item.name || '未命名'}}</view>
+              <view class="a-sub" data-openid="{{item.openid}}" bindtap="copyOpenid">
+                id {{item.openidShort}} · {{item.timeText}}
+              </view>
+            </view>
+            <view class="badge {{item.role === 'super' ? 'badge-info' : 'badge-gray'}}">
+              {{item.roleLabel}}
+            </view>
+            <view
+              wx:if="{{isSuper}}"
+              class="a-del"
+              data-openid="{{item.openid}}"
+              data-name="{{item.name}}"
+              catchtap="removeAdmin"
+            >
+              移除
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{isSuper}}" class="group">
+        <view class="group-t">新增管理员</view>
+        <view class="detail-card">
+          <view wx:if="{{!showAdd}}" class="d-actions">
+            <view class="d-btn primary" bindtap="toggleAdd">添加管理员</view>
+          </view>
+
+          <block wx:else>
+            <view class="field">
+              <view class="field-label"><text>对方 openid</text><text>可让对方在「我的」页复制</text></view>
+              <input class="field-input" value="{{newAdmin.openid}}"
+                placeholder="粘贴完整 openid" placeholder-class="field-placeholder"
+                data-key="openid" bindinput="onNewAdminInput" />
+            </view>
+
+            <view class="field">
+              <view class="field-label"><text>备注名</text></view>
+              <input class="field-input" value="{{newAdmin.name}}"
+                placeholder="如：运营-小王" placeholder-class="field-placeholder"
+                data-key="name" bindinput="onNewAdminInput" />
+            </view>
+
+            <view class="field">
+              <view class="field-label"><text>角色</text></view>
+              <picker range="{{roleLabels}}" bindchange="onRoleChange">
+                <view class="field-input picker-value">
+                  {{newAdmin.role === 'super' ? '超级管理员' : '运营'}}
+                </view>
+              </picker>
+            </view>
+
+            <view class="d-actions">
+              <view class="d-btn" bindtap="toggleAdd">取消</view>
+              <view class="d-btn primary" bindtap="addAdmin">确认添加</view>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <view wx:if="{{pendingAdmins.length}}" class="group">
+        <view class="group-t">待审批（{{pendingAdmins.length}}）</view>
+        <view class="list-card">
+          <view wx:for="{{pendingAdmins}}" wx:key="openid" class="a-row">
+            <view class="flex-1">
+              <view class="a-name">{{item.name || '未命名'}}</view>
+              <view class="a-sub">id {{item.openidShort}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="page-bottom-hold"></view>
+  </view>
+</view>

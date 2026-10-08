@@ -1,0 +1,79 @@
+<view class="page">
+  <nav-bar showBack title="用户管理" />
+
+  <view class="search-wrap">
+    <view class="search">
+      <view class="search-ic"></view>
+      <input
+        class="search-input"
+        value="{{keyword}}"
+        placeholder="搜索昵称或 openid"
+        placeholder-class="field-placeholder"
+        confirm-type="search"
+        bindinput="onSearchInput"
+      />
+      <view wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">×</view>
+    </view>
+  </view>
+
+  <view class="filter-row">
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="chip {{item.active ? 'on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="switchFilter"
+    >
+      {{item.label}}
+    </view>
+    <view class="count">共 {{total}}</view>
+  </view>
+
+  <view class="page-body">
+    <block wx:if="{{loading}}">
+      <view wx:for="{{skeletonRows}}" wx:key="*this" class="sk-row">
+        <view class="skeleton sk-av"></view>
+        <view class="flex-1">
+          <view class="skeleton sk-t1"></view>
+          <view class="skeleton sk-t2"></view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{list.length}}">
+      <view
+        wx:for="{{list}}"
+        wx:key="id"
+        class="u-row"
+        data-id="{{item.id}}"
+        bindtap="openUser"
+      >
+        <image wx:if="{{item.avatarUrl}}" class="u-av" src="{{item.avatarUrl}}" mode="aspectFill" />
+        <view wx:else class="u-av u-av-ph"></view>
+
+        <view class="flex-1">
+          <view class="u-line1">
+            <text class="u-name ellipsis">{{item.nickName || '微信用户'}}</text>
+            <text wx:if="{{item.role !== 'user'}}" class="u-role">{{item.roleLabel}}</text>
+          </view>
+          <view class="u-line2 ellipsis">{{item.usageText}}</view>
+          <view class="u-line3">注册 {{item.timeText}} · id {{item.openidShort}}</view>
+        </view>
+
+        <view class="badge {{item.badgeClass}}">{{item.statusLabel}}</view>
+      </view>
+
+      <view wx:if="{{loadingMore}}" class="loading-more">加载中…</view>
+      <view wx:elif="{{!hasMore}}" class="loading-more">已经到底了</view>
+    </block>
+
+    <empty-state
+      wx:else
+      icon="search"
+      title="没有匹配的用户"
+      desc="换个关键词或筛选条件试试"
+    />
+
+    <view class="page-bottom-hold"></view>
+  </view>
+</view>

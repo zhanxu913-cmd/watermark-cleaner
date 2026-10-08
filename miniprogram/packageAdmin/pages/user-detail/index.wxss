@@ -1,0 +1,48 @@
+@import '../../styles/admin.wxss';
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx 32rpx;
+  border-radius: 28rpx;
+  background: #f1efe8;
+  margin-top: 16rpx;
+}
+
+.head-av {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: #b5d4f4;
+  flex-shrink: 0;
+}
+
+.head-av-ph {
+  background: #b5d4f4;
+}
+
+.head-name {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+}
+
+.head-sub {
+  font-size: 24rpx;
+  color: #b4b2a9;
+  margin-top: 8rpx;
+}
+
+.sk-big {
+  height: 200rpx;
+  border-radius: 24rpx;
+  margin-top: 20rpx;
+}
+
+.empty-line {
+  font-size: 26rpx;
+  color: #b4b2a9;
+  text-align: center;
+  padding: 40rpx 0;
+}

@@ -1,0 +1,77 @@
+/* 用户卡 */
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 26rpx;
+  padding: 32rpx;
+  border-radius: 28rpx;
+  background: #f1efe8;
+  margin-top: 16rpx;
+}
+
+.avatar-btn {
+  width: 104rpx;
+  height: 104rpx;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  line-height: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar-btn::after {
+  border: none;
+}
+
+.avatar {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  display: block;
+  background: #b5d4f4;
+}
+
+.avatar-ph {
+  background: #b5d4f4;
+}
+
+.user-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+  height: 44rpx;
+  line-height: 44rpx;
+}
+
+.user-sub {
+  font-size: 24rpx;
+  color: #b4b2a9;
+  margin-top: 8rpx;
+}
+
+.admin-chip {
+  padding: 12rpx 24rpx;
+  border-radius: 22rpx;
+  background: #185fa5;
+  color: #ffffff;
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+/* 管理员登录 */
+.admin-login {
+  text-align: center;
+  font-size: 26rpx;
+  color: #b4b2a9;
+  padding: 28rpx 0;
+}
+
+.version {
+  text-align: center;
+  font-size: 24rpx;
+  color: #b4b2a9;
+  padding: 48rpx 0 20rpx;
+}

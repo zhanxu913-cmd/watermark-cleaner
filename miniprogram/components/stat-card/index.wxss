@@ -1,0 +1,43 @@
+.sc-row {
+  display: flex;
+  gap: 18rpx;
+}
+
+.sc {
+  flex: 1;
+  background: #f1efe8;
+  border-radius: 20rpx;
+  padding: 22rpx 24rpx;
+  min-width: 0;
+}
+
+.sc-accent {
+  background: #e6f1fb;
+}
+
+.sc-accent .sc-k {
+  color: #185fa5;
+}
+
+.sc-accent .sc-v {
+  color: #0c447c;
+}
+
+.sc-k {
+  font-size: 24rpx;
+  color: #b4b2a9;
+}
+
+.sc-v {
+  font-size: 38rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+  margin-top: 8rpx;
+  line-height: 1.2;
+}
+
+.sc-sub {
+  font-size: 22rpx;
+  color: #b4b2a9;
+  margin-top: 4rpx;
+}

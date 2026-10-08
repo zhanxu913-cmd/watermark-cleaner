@@ -1,0 +1,33 @@
+{
+  "desc": "管理后台页面禁止被微信搜一搜收录，仅开放工具页面。规则按顺序匹配，先命中者生效。",
+  "rules": [
+    {
+      "action": "disallow",
+      "page": "packageAdmin/pages/dashboard/index"
+    },
+    {
+      "action": "disallow",
+      "page": "packageAdmin/pages/users/index"
+    },
+    {
+      "action": "disallow",
+      "page": "packageAdmin/pages/user-detail/index"
+    },
+    {
+      "action": "disallow",
+      "page": "packageAdmin/pages/jobs/index"
+    },
+    {
+      "action": "disallow",
+      "page": "packageAdmin/pages/config/index"
+    },
+    {
+      "action": "disallow",
+      "page": "packageAdmin/pages/logs/index"
+    },
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+@import '../../styles/admin.wxss';
+
+.lg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 18rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f1efe8;
+}
+
+.lg-row:last-child {
+  border-bottom: none;
+}
+
+.lg-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #378add;
+  margin-top: 14rpx;
+  flex-shrink: 0;
+}
+
+.lg-t {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+}
+
+.lg-s {
+  font-size: 23rpx;
+  color: #b4b2a9;
+  margin-top: 6rpx;
+}
+
+.lg-target {
+  font-size: 23rpx;
+  color: #5f5e5a;
+  margin-top: 8rpx;
+}
+
+.lg-detail {
+  font-size: 22rpx;
+  color: #b4b2a9;
+  margin-top: 4rpx;
+}

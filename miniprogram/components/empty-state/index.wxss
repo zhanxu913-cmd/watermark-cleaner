@@ -1,0 +1,165 @@
+.es {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 60rpx;
+}
+
+.es-icon {
+  width: 148rpx;
+  height: 148rpx;
+  border-radius: 50%;
+  background: #f1efe8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 搜索：圆环 + 手柄 */
+.es-lens {
+  width: 46rpx;
+  height: 46rpx;
+  border: 5rpx solid #b4b2a9;
+  border-radius: 50%;
+  position: relative;
+  margin: -8rpx 0 0 -8rpx;
+}
+.es-lens::after {
+  content: '';
+  position: absolute;
+  right: -18rpx;
+  bottom: -12rpx;
+  width: 22rpx;
+  height: 5rpx;
+  background: #b4b2a9;
+  border-radius: 3rpx;
+  transform: rotate(45deg);
+}
+
+/* 图片：外框 + 太阳 + 山 */
+.es-frame {
+  width: 62rpx;
+  height: 50rpx;
+  border: 5rpx solid #b4b2a9;
+  border-radius: 8rpx;
+  position: relative;
+  overflow: hidden;
+}
+.es-sun {
+  position: absolute;
+  left: 8rpx;
+  top: 7rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #b4b2a9;
+}
+.es-hill {
+  position: absolute;
+  left: 6rpx;
+  bottom: -14rpx;
+  width: 0;
+  height: 0;
+  border-left: 24rpx solid transparent;
+  border-right: 24rpx solid transparent;
+  border-bottom: 26rpx solid #b4b2a9;
+}
+
+/* 视频：播放三角 */
+.es-play {
+  width: 0;
+  height: 0;
+  border-left: 42rpx solid #b4b2a9;
+  border-top: 26rpx solid transparent;
+  border-bottom: 26rpx solid transparent;
+  margin-left: 12rpx;
+}
+
+/* 警告：感叹号 */
+.es-bang {
+  width: 12rpx;
+  height: 52rpx;
+  background: #b4b2a9;
+  border-radius: 6rpx;
+  position: relative;
+}
+.es-bang::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -22rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #b4b2a9;
+}
+
+/* 锁 */
+.es-lock {
+  width: 50rpx;
+  height: 40rpx;
+  background: #b4b2a9;
+  border-radius: 8rpx;
+  margin-top: 16rpx;
+  position: relative;
+}
+.es-shackle {
+  position: absolute;
+  left: 9rpx;
+  top: -26rpx;
+  width: 32rpx;
+  height: 30rpx;
+  border: 5rpx solid #b4b2a9;
+  border-bottom: none;
+  border-radius: 18rpx 18rpx 0 0;
+}
+
+/* 默认：层叠方块 */
+.es-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.es-layer {
+  width: 56rpx;
+  height: 14rpx;
+  background: #b4b2a9;
+  border-radius: 4rpx;
+}
+.es-layer:nth-child(2) {
+  width: 42rpx;
+}
+.es-layer:nth-child(3) {
+  width: 28rpx;
+}
+
+.es-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #5f5e5a;
+  margin-top: 32rpx;
+}
+
+.es-desc {
+  font-size: 26rpx;
+  color: #b4b2a9;
+  margin-top: 12rpx;
+  text-align: center;
+  line-height: 1.6;
+  max-width: 520rpx;
+}
+
+.es-action {
+  margin-top: 36rpx;
+  padding: 20rpx 52rpx;
+  border-radius: 24rpx;
+  background: #185fa5;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.es-action-hover {
+  opacity: 0.85;
+}

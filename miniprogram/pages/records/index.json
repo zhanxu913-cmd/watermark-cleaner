@@ -1,0 +1,11 @@
+{
+  "usingComponents": {
+    "nav-bar": "/components/nav-bar/index",
+    "job-card": "/components/job-card/index",
+    "empty-state": "/components/empty-state/index"
+  },
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "backgroundColor": "#F5F5F3"
+}

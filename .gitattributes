@@ -1,0 +1,37 @@
+# 统一换行符：避免 Windows 开发机与其它机器之间来回 diff 出一堆无意义的改动
+* text=auto
+
+*.js    text eol=lf
+*.json  text eol=lf
+*.wxml  text eol=lf
+*.wxss  text eol=lf
+*.wxss  text eol=lf
+*.md    text eol=lf
+*.sql   text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sh    text eol=lf
+
+# Windows 批处理必须是 CRLF，否则可能无法执行
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# 二进制：不做任何换行符转换
+*.exe   binary
+*.dll   binary
+*.mp4   binary
+*.mov   binary
+*.jpg   binary
+*.jpeg  binary
+*.png   binary
+*.gif   binary
+*.ico   binary
+*.zip   binary
+*.woff  binary
+*.woff2 binary
+
+# 以下路径不参与语言统计
+tools/bin/**  linguist-vendored
+node_modules/** linguist-vendored

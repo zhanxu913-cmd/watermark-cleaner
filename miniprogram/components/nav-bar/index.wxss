@@ -1,0 +1,77 @@
+.nb {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.nb-inner {
+  position: relative;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 24rpx;
+}
+
+.nb-border {
+  border-bottom: 1rpx solid #e5e3dc;
+}
+
+.nb-left {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  min-width: 88rpx;
+  z-index: 2;
+}
+
+.nb-back {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -12rpx;
+  border-radius: 50%;
+}
+
+.nb-back-hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.nb-arrow {
+  width: 18rpx;
+  height: 18rpx;
+  border-left: 3rpx solid #2c2c2a;
+  border-bottom: 3rpx solid #2c2c2a;
+  transform: rotate(45deg);
+  margin-left: 6rpx;
+  margin-top: -4rpx;
+}
+
+.nb-title {
+  position: absolute;
+  left: 180rpx;
+  right: 180rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #2c2c2a;
+  pointer-events: none;
+}
+
+.nb-title.nb-center {
+  left: 180rpx;
+  right: 180rpx;
+}
+
+.nb-right {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-left: auto;
+  /* 避让微信右上角胶囊按钮（约 87px 宽 + 8px 边距） */
+  padding-right: 178rpx;
+  z-index: 2;
+}

@@ -1,0 +1,25 @@
+<view class="es" style="padding-top:{{padTop}}rpx;">
+  <view class="es-icon">
+    <view wx:if="{{icon === 'search'}}" class="es-lens"></view>
+    <view wx:elif="{{icon === 'image'}}" class="es-frame">
+      <view class="es-sun"></view>
+      <view class="es-hill"></view>
+    </view>
+    <view wx:elif="{{icon === 'video'}}" class="es-play"></view>
+    <view wx:elif="{{icon === 'error'}}" class="es-bang"></view>
+    <view wx:elif="{{icon === 'lock'}}" class="es-lock">
+      <view class="es-shackle"></view>
+    </view>
+    <view wx:else class="es-stack">
+      <view class="es-layer"></view>
+      <view class="es-layer"></view>
+      <view class="es-layer"></view>
+    </view>
+  </view>
+
+  <view class="es-title">{{title}}</view>
+  <view wx:if="{{desc}}" class="es-desc">{{desc}}</view>
+  <view wx:if="{{actionText}}" class="es-action" bindtap="onAction" hover-class="es-action-hover">
+    {{actionText}}
+  </view>
+</view>

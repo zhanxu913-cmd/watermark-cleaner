@@ -1,0 +1,119 @@
+<view class="editor">
+  <nav-bar showBack title="图片去水印" />
+
+  <!-- 画布舞台 -->
+  <view class="stage">
+    <image class="stage-img" src="{{src}}" mode="aspectFit" />
+    <canvas
+      type="2d"
+      id="stageCanvas"
+      class="stage-canvas"
+      disable-scroll
+      bindtouchstart="onTouchStart"
+      catchtouchmove="onTouchMove"
+      bindtouchend="onTouchEnd"
+      bindtouchcancel="onTouchEnd"
+    ></canvas>
+    <view wx:if="{{showOriginal}}" class="orig-badge">原图</view>
+    <view wx:if="{{!layoutReady}}" class="stage-loading">正在准备画布…</view>
+  </view>
+
+  <!-- 工具栏 -->
+  <view class="tools">
+    <view class="tool-row">
+      <view class="btn-mini {{canUndo ? '' : 'dim'}}" bindtap="undo">撤销</view>
+      <view class="btn-mini {{canRedo ? '' : 'dim'}}" bindtap="redo">重做</view>
+      <view class="btn-mini" bindtap="clearAll">清空</view>
+      <view
+        class="btn-mini {{hasSelection ? '' : 'dim'}}"
+        catchtouchstart="showOrigin"
+        catchtouchend="hideOrigin"
+      >
+        按住看原图
+      </view>
+    </view>
+
+    <view class="seg">
+      <view
+        class="seg-it {{tool === 'brush' ? 'on' : ''}}"
+        data-tool="brush"
+        bindtap="switchTool"
+      >
+        涂抹
+      </view>
+      <view
+        class="seg-it {{tool === 'rect' ? 'on' : ''}}"
+        data-tool="rect"
+        bindtap="switchTool"
+      >
+        框选
+      </view>
+      <view
+        class="seg-it {{tool === 'crop' ? 'on' : ''}}"
+        data-tool="crop"
+        bindtap="switchTool"
+      >
+        裁剪
+      </view>
+    </view>
+
+    <view wx:if="{{tool === 'brush'}}" class="slider-wrap">
+      <view class="field-label">
+        <text>笔刷大小</text>
+        <text>{{brushPx}} px</text>
+      </view>
+      <slider
+        min="1"
+        max="8"
+        step="1"
+        value="{{brushLevel}}"
+        bindchange="onBrushChange"
+        bindchanging="onBrushChange"
+        activeColor="#378ADD"
+        backgroundColor="#E5E3DC"
+        block-size="22"
+        block-color="#FFFFFF"
+      />
+    </view>
+
+    <view wx:if="{{tool !== 'crop'}}" class="mode-wrap">
+      <view class="field-label">
+        <text>处理方式</text>
+        <text class="mode-desc">智能去水印</text>
+      </view>
+      <view class="notice plain">
+        <view class="notice-tx">按水印周围的画面自动推算填充，无需选择，效果最好。</view>
+      </view>
+    </view>
+
+    <view wx:else class="mode-wrap">
+      <view class="notice plain">
+        <view class="notice-tx">拖动白框调整保留范围。裁剪是无损操作，画质不下降。</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <view
+      class="btn-primary {{hasSelection && !processing ? '' : 'disabled'}}"
+      bindtap="startProcess"
+    >
+      开始处理
+    </view>
+  </view>
+
+  <!-- 处理进度 -->
+  <view wx:if="{{processing}}" class="mask">
+    <view class="mask-card">
+      <view class="mask-label">{{progressLabel}}</view>
+      <view class="bar">
+        <view class="bar-in" style="width:{{progress}}%"></view>
+      </view>
+      <view class="mask-pct">{{progress}}%</view>
+      <view class="mask-tip">本地处理 · 原图不会离开你的手机</view>
+    </view>
+  </view>
+
+  <!-- 隐藏的处理画布（原图尺寸） -->
+  <canvas type="2d" id="workCanvas" class="work-canvas"></canvas>
+</view>

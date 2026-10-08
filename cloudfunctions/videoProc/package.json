@@ -1,0 +1,10 @@
+{
+  "name": "videoProc",
+  "version": "1.0.0",
+  "description": "视频处理任务调度 + 接收云托管服务回调",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

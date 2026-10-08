@@ -1,0 +1,102 @@
+<view class="page">
+  <nav-bar showBack title="管理后台" />
+
+  <view class="page-body">
+    <!-- 身份 -->
+    <view class="id-card">
+      <view class="id-avatar"></view>
+      <view class="flex-1">
+        <view class="id-name">{{adminName || '管理员'}}</view>
+        <view class="id-role">{{roleLabel}}</view>
+      </view>
+      <view class="id-act" bindtap="copyKey">密钥</view>
+      <view class="id-act id-out" bindtap="logout">退出</view>
+    </view>
+
+    <!-- 概览 -->
+    <block wx:if="{{loading}}">
+      <view class="skeleton sk-m"></view>
+      <view class="skeleton sk-m"></view>
+      <view class="skeleton sk-m"></view>
+    </block>
+
+    <block wx:else>
+      <view class="sect">
+        <view class="sect-head"><view class="t-card">用户</view></view>
+        <stat-card items="{{userMetrics}}" />
+      </view>
+
+      <view class="sect">
+        <view class="sect-head"><view class="t-card">任务</view></view>
+        <stat-card items="{{jobMetrics}}" />
+      </view>
+
+      <view class="sect">
+        <view class="sect-head"><view class="t-card">运行状况</view></view>
+        <stat-card items="{{healthItems}}" />
+      </view>
+
+      <!-- 快捷入口 -->
+      <view class="sect">
+        <view class="sect-head"><view class="t-card">管理入口</view></view>
+        <view class="card pad0">
+          <view class="row-item" bindtap="goUsers">
+            <view class="row-k">用户管理</view>
+            <view class="row-r"><text class="arrow">›</text></view>
+          </view>
+          <view class="row-item" bindtap="goJobs">
+            <view class="row-k">任务管理</view>
+            <view class="row-r"><text class="arrow">›</text></view>
+          </view>
+          <view class="row-item" bindtap="goConfig">
+            <view class="row-k">系统配置</view>
+            <view class="row-r">
+              <text class="row-tag">{{isSuper ? '可编辑' : '仅超管'}}</text>
+              <text class="arrow">›</text>
+            </view>
+          </view>
+          <view class="row-item" bindtap="goAdmins">
+            <view class="row-k">管理员管理</view>
+            <view class="row-r">
+              <text class="row-tag">{{isSuper ? '可编辑' : '仅超管'}}</text>
+              <text class="arrow">›</text>
+            </view>
+          </view>
+          <view class="row-item" bindtap="goLogs">
+            <view class="row-k">操作日志</view>
+            <view class="row-r"><text class="arrow">›</text></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 最近操作 -->
+      <view class="sect">
+        <view class="sect-head">
+          <view class="t-card">最近操作</view>
+          <view class="sect-more" bindtap="goLogs">全部 ›</view>
+        </view>
+        <view wx:if="{{recentLogs.length}}" class="card pad0">
+          <view wx:for="{{recentLogs}}" wx:key="id" class="log-row">
+            <view class="log-dot"></view>
+            <view class="flex-1">
+              <view class="log-t">{{item.actionLabel}}</view>
+              <view class="log-s">{{item.operatorName || '未知'}} · {{item.timeText}}</view>
+            </view>
+          </view>
+        </view>
+        <view wx:else class="empty-line">暂无操作记录</view>
+      </view>
+
+      <!-- 维护 -->
+      <view class="sect">
+        <view class="sect-head"><view class="t-card">数据维护</view></view>
+        <view class="card">
+          <view class="maint-text">清理 30 天前的已完成任务记录及其云端文件，可释放存储空间。该操作不可恢复。</view>
+          <view class="maint-btn" bindtap="cleanData">立即清理</view>
+        </view>
+      </view>
+    </block>
+
+    <view class="page-bottom-hold"></view>
+  </view>
+</view>

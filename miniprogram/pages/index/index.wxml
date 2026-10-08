@@ -1,0 +1,131 @@
+<view class="page">
+  <nav-bar title="水印清理" />
+
+  <view class="page-body">
+    <!-- Hero -->
+    <view class="hero">
+      <view class="t-hero">清理你自己素材上的水印</view>
+      <view class="hero-sub">图片本地处理，原图不上传第三方</view>
+    </view>
+
+    <!-- 云环境异常 -->
+    <view wx:if="{{bootError}}" class="sect">
+      <view class="notice danger">
+        <view class="notice-bar"></view>
+        <view class="notice-tx">
+          {{bootError}}
+          <view class="boot-retry" bindtap="retryBoot">重新检测</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 版权提示（常驻，不可关闭） -->
+    <view class="sect">
+      <view class="notice warn">
+        <view class="notice-bar"></view>
+        <view class="notice-tx">{{copyrightTip}}</view>
+      </view>
+    </view>
+
+    <!-- 配额 -->
+    <view wx:if="{{quotaText}}" class="quota-line">
+      <view class="flex-1">{{quotaText}}</view>
+      <view wx:if="{{isAdmin}}" class="admin-entry" bindtap="goAdmin">管理后台</view>
+    </view>
+
+    <!-- 两个入口 -->
+    <view class="entries">
+      <view class="entry entry-blue" bindtap="goImage" hover-class="entry-hover">
+        <view class="entry-icon entry-icon-blue">
+          <view class="ic-img"></view>
+        </view>
+        <view class="flex-1">
+          <view class="entry-tt">图片去水印</view>
+          <view class="entry-dd">涂抹 / 框选 / 裁剪 · 本地处理</view>
+        </view>
+        <view class="entry-go entry-go-blue">›</view>
+      </view>
+
+      <view
+        class="entry {{videoServiceEnabled ? 'entry-green' : 'entry-off'}}"
+        bindtap="goVideo"
+        hover-class="entry-hover"
+      >
+        <view class="entry-icon {{videoServiceEnabled ? 'entry-icon-green' : 'entry-icon-off'}}">
+          <view class="ic-vid"></view>
+        </view>
+        <view class="flex-1">
+          <view class="entry-tt">视频去水印</view>
+          <view class="entry-dd">{{videoHint}}</view>
+        </view>
+        <view class="entry-go">{{videoServiceEnabled ? '›' : '!'}}</view>
+      </view>
+    </view>
+
+    <!-- 最近处理 -->
+    <view class="sect">
+      <view class="sect-head">
+        <view class="t-card">最近处理</view>
+        <view class="sect-more" bindtap="goRecords">全部 ›</view>
+      </view>
+
+      <!-- 骨架 -->
+      <view wx:if="{{recentLoading}}" class="recent-track-static">
+        <view class="recent-item">
+          <view class="skeleton recent-thumb"></view>
+          <view class="skeleton sk-line"></view>
+        </view>
+        <view class="recent-item">
+          <view class="skeleton recent-thumb"></view>
+          <view class="skeleton sk-line"></view>
+        </view>
+        <view class="recent-item">
+          <view class="skeleton recent-thumb"></view>
+          <view class="skeleton sk-line"></view>
+        </view>
+      </view>
+
+      <scroll-view
+        wx:elif="{{recent.length}}"
+        scroll-x
+        class="recent-scroll"
+        enhanced
+        show-scrollbar="{{false}}"
+      >
+        <view class="recent-track">
+          <view
+            wx:for="{{recent}}"
+            wx:key="id"
+            class="recent-item"
+            data-index="{{index}}"
+            bindtap="openRecent"
+          >
+            <view class="thumb recent-thumb">
+              <image
+                wx:if="{{item.thumbUrl}}"
+                class="recent-img"
+                src="{{item.thumbUrl}}"
+                mode="aspectFill"
+                lazy-load
+              />
+              <view wx:else class="recent-ph">{{item.type === 'video' ? '视' : '图'}}</view>
+            </view>
+            <view class="recent-name ellipsis">{{item.fileName}}</view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view wx:else class="recent-empty">
+        <empty-state
+          size="sm"
+          icon="image"
+          title="还没有处理记录"
+          desc="从上方选一张图片开始"
+        />
+      </view>
+    </view>
+
+    <view class="foot-note" bindtap="goAbout">使用说明与隐私政策 ›</view>
+    <view class="page-bottom-hold"></view>
+  </view>
+</view>
