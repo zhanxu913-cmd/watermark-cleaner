@@ -1,49 +1,24 @@
-const app = getApp();
-const userApi = require('../../services/user');
+const SECTIONS = [
+  {
+    h: '一、数据存在哪',
+    p: '图片处理全程在本机完成，不上传任何服务器。处理结果与记录只保存在这台手机上，清理小程序缓存或卸载微信会一并丢失，重要结果请及时保存到相册。'
+  },
+  {
+    h: '二、视频处理',
+    p: '视频去水印需要先配置一台处理服务（VIDEO_API_BASE_URL）。视频会上传到你自己的服务，处理完成后源文件立即删除，结果在服务端保留一段时间，请尽快下载到相册。'
+  },
+  {
+    h: '三、版权提醒',
+    p: '本工具用于清理你拥有版权的素材上的水印。去除他人作品水印可能构成侵权，请勿用于此类用途。'
+  },
+  {
+    h: '四、权限说明',
+    p: '仅在保存结果时申请相册写入权限，不读取通讯录、位置、剪贴板等无关信息。'
+  }
+];
 
 Page({
   data: {
-    loading: true,
-    notice: '',
-    hasNotice: false,
-    maintenance: ''
-  },
-
-  onLoad() {
-    this.load();
-  },
-
-  load() {
-    const settings = app.globalData.settings;
-    if (settings) {
-      this.apply(settings);
-      return;
-    }
-    // 冷启动时设置可能还没到达，主动拉一次
-    userApi
-      .signIn()
-      .then((d) => this.apply((d && d.settings) || {}))
-      .catch(() => {
-        this.setData({ loading: false });
-      });
-  },
-
-  apply(settings) {
-    const notice = settings.globalNotice || '';
-    const maintenance = settings.maintenanceNotice || '';
-    this.setData({
-      loading: false,
-      notice,
-      maintenance,
-      hasNotice: !!(notice || maintenance)
-    });
-  },
-
-  copy() {
-    if (!this.data.notice) return;
-    wx.setClipboardData({
-      data: this.data.notice,
-      success: () => wx.showToast({ title: '已复制', icon: 'none' })
-    });
+    sections: SECTIONS
   }
 });

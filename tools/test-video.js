@@ -16,13 +16,11 @@ const path = require('path');
 const { execFile } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const SERVER = path.join(ROOT, 'server');
+const SERVICE = path.join(ROOT, 'video-service-lite');
 
-// 载入配置（FFMPEG_PATH 等）
-require(path.join(SERVER, 'lib', 'env')).loadEnv(SERVER);
-
-const ff = require(path.join(SERVER, 'lib', 'ffmpeg'));
-const graph = require(path.join(SERVER, 'lib', 'graph'));
+// 不加载 .env：binpath 会按「tools/bin → 系统 PATH」自行找到 ffmpeg
+const ff = require(path.join(SERVICE, 'lib', 'ffmpeg'));
+const graph = require(path.join(SERVICE, 'lib', 'graph'));
 
 const TMP = path.join(ROOT, 'tools', '.tmp-video-test');
 const FFMPEG = ff.FFMPEG;

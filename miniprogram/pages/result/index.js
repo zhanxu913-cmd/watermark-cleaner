@@ -1,6 +1,5 @@
 const app = getApp();
 const jobApi = require('../../services/job');
-const cloud = require('../../utils/cloud');
 const { MODE_LABEL, JOB_STATUS_LABEL } = require('../../utils/constants');
 const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt } = require('../../utils/util');
 
@@ -216,15 +215,13 @@ Page({
     };
   },
 
-  /** 把 cloud fileID 换成可访问的临时链接 */
+  /** 本地记录的路径可以直接使用；视频结果是服务端返回的 https 地址 */
   decorate(job) {
-    const ids = [job.outFileID, job.thumbFileID, job.srcFileID].filter(Boolean);
-    if (!ids.length) return Promise.resolve(job);
-    return cloud.tempUrls(ids).then((map) =>
+    return Promise.resolve(
       Object.assign({}, job, {
-        outUrl: map[job.outFileID] || '',
-        thumbUrl: map[job.thumbFileID] || '',
-        srcUrl: map[job.srcFileID] || ''
+        outUrl: job.outFileID || '',
+        thumbUrl: job.thumbFileID || '',
+        srcUrl: job.srcFileID || ''
       })
     );
   },
@@ -234,8 +231,14 @@ Page({
   startPoll() {
     if (this._timer) return;
     this._timer = setInterval(() => {
+      const remoteId = (this.data.job && this.data.job.remoteId) || '';
+      if (!remoteId) {
+        // 图片记录或远程任务号缺失：没有可轮询的对象
+        this.stopPoll();
+        return;
+      }
       jobApi
-        .videoStatus(this.jobId)
+        .videoStatus(remoteId)
         .then((res) => {
           if (!res) return;
           const status = res.status;
@@ -254,6 +257,17 @@ Page({
           this.easeProgress(done && status === 'done' ? 100 : pct);
           if (done) {
             this.stopPoll();
+            // 回填本地记录，离开本页后记录列表也能看到最终状态
+            const patch = { status, progress: pct };
+            if (status === 'done') {
+              patch.progress = 100;
+              patch.outFileID = res.url || '';
+              patch.thumbFileID = res.thumbUrl || '';
+            } else {
+              patch.error = res.error || '处理失败';
+            }
+            jobApi.update(this.jobId, patch).catch(() => {});
+            app.bumpJob();
             // 明确的成败提示：先把进度条推到终点，再提示结果
             this.easeProgress(status === 'failed' ? pct : 100, () => {
               if (status === 'done') toast('处理完成，可以下载了', 'success');

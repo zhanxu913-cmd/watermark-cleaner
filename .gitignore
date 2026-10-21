@@ -2,17 +2,16 @@
 node_modules/
 miniprogram_npm/
 
-# ── 运行时数据（用户上传、去水印产物、缩略图）──────────────
-# 属于用户数据且体积会持续增长，不进仓库；换电脑请用 node tools/backup.js 单独搬
-server/uploads/
+# ── 视频服务运行时数据（上传中转 + 产物）──────────────────
+video-service-lite/.work/
 
 # ── 密钥与本地配置 ──────────────────────────────────────
-# 含数据库密码、JWT 密钥、后台密钥，绝不能提交
-server/.env
+# 含 CLIENT_TOKEN，绝不能提交；.env.example 是模板，保留
+video-service-lite/.env
 *.local.env
 .env.local
 
-# ── 备份包（含数据库导出与 .env 副本）────────────────────
+# ── 备份包 ──────────────────────────────────────────────
 backup/
 
 # ── 内置 FFmpeg 二进制（约 140 MB）──────────────────────

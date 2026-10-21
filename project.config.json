@@ -25,24 +25,17 @@
           "pathName": "pages/index/index",
           "query": "",
           "scene": null
-        },
-        {
-          "name": "管理后台",
-          "pathName": "packageAdmin/pages/dashboard/index",
-          "query": "",
-          "scene": null
         }
       ]
     }
   },
   "packOptions": {
     "ignore": [
-      { "type": "folder", "value": "server" },
-      { "type": "folder", "value": "cloudfunctions" },
-      { "type": "folder", "value": "video-service" },
-      { "type": "folder", "value": "admin-web" },
+      { "type": "folder", "value": "video-service-lite" },
       { "type": "folder", "value": "design" },
-      { "type": "folder", "value": "docs" }
+      { "type": "folder", "value": "docs" },
+      { "type": "folder", "value": "tools" },
+      { "type": "folder", "value": "backup" }
     ],
     "include": []
   }

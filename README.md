@@ -1,252 +1,243 @@
-# 水印清理 · 微信小程序（MySQL 后端版）
+# 水印清理 · 零后台版微信小程序
 
-一个**只处理自有素材水印**的工具类小程序。图片全本地处理（不上传原图），视频由自建后端的 FFmpeg 处理。数据全部存 **MySQL**，后台支持对小程序的**完整权限管理**（用户封禁 / 角色分配 / 独享配额 / 管理员白名单）。
+**图片去水印全部在手机本地完成，不需要服务器、不需要数据库、不需要域名备案。**
+视频去水印交给一个可选的极简 FFmpeg 服务 —— 不想要视频功能，就一行都不用配。
 
-> ⚠️ 合规定位：本工具面向「清理自有素材上的水印」。请在「关于」与隐私政策中保持这一表述，不要使用「去除他人作品水印」类文案。上传他人作品去水印可能构成侵权。
+> ⚠️ 合规定位：本工具面向「清理自有素材上的水印」。小程序的「关于」与隐私政策已按此表述，请不要改成「去除他人作品水印」类文案。
 
 ---
 
-## 一、架构总览
+## 一、和上一版（MySQL 后台）的区别
+
+| | 旧版 | 本版 |
+|---|---|---|
+| 图片处理 | 本地 Canvas 处理后上传成品 | **纯本地，零请求** |
+| 图片记录 | MySQL `wc_jobs` | 手机本地 `records.json` |
+| 登录 | wx.login → JWT | **无登录** |
+| 用户/配额/封禁 | 后台可配 | **已移除** |
+| 管理后台 | Web + 小程序内分包 | **已移除** |
+| 视频处理 | Node + MySQL + 队列 | 极简单文件服务（Express + FFmpeg，无数据库） |
+| 部署 | MySQL + 服务 + 备案域名 | 图片零部署；视频一个容器 |
+
+旧版代码完整保留在 Git 历史中（`eef111b` 及更早提交）。
+
+---
+
+## 二、架构
 
 ```
-┌──────────────┐   wx.request / wx.uploadFile    ┌──────────────────────────────┐
-│  微信小程序   │ ───────────────────────────────▶ │  Node.js 后端 (server/)       │
-│  miniprogram │ ◀──────────────── JSON + 文件 ── │  Express + JWT + FFmpeg 队列  │
-└──────────────┘                                  └───────────┬──────────────────┘
-                                                              │ mysql2
-┌──────────────┐   fetch + Bearer Token           ┌───────────▼──────────────────┐
-│ Web 管理后台  │ ───────────────────────────────▶ │  MySQL (5 张表)               │
-│ admin-web    │ ◀─────────────────────────────── │  wc_users / wc_jobs / ...     │
-└──────────────┘                                  └──────────────────────────────┘
+┌─────────────────────────────────────┐
+│  微信小程序                          │
+│                                     │
+│  图片：选图 → Canvas 处理 → 存本机   │  ← 全程不联网
+│                                     │
+│  视频：选区间 → 上传 ─┐              │
+└──────────────────────┼──────────────┘
+                       │ HTTPS
+              ┌────────▼──────────┐
+              │ video-service-lite │  ← 可选，不配也能用图片
+              │ Express + FFmpeg   │
+              │ 无数据库 / 无登录   │
+              └────────┬──────────┘
+                       │ 处理完立刻删源文件
+                       ▼
+                  产物 mp4（保留 24h）
 ```
 
-- **图片线**：小程序本地 Canvas 处理 → 只上传成品 + 缩略图 → 后端落盘 + MySQL 记账
-- **视频线**：上传源视频 → 后端入队 → FFmpeg 转码（进度实时回写）→ 轮询取结果
-- **管理后台**：小程序内（`packageAdmin` 分包）+ 独立 Web（`admin-web/index.html`，零依赖单文件）
+---
 
-> 说明：`cloudfunctions/` 与 `video-service/` 是旧「微信云开发版」的遗留实现，**MySQL 版不再需要**，可整目录删除。
-
-## 二、目录结构
+## 三、目录结构
 
 ```
 watermark-cleaner/
-├── miniprogram/            # 小程序（改 1 个文件即可对接后端）
-│   ├── utils/constants.js  #   ★ API_BASE_URL 在这里
-│   ├── utils/cloud.js      #   HTTP 封装（接口签名与旧版一致）
-│   ├── app.js              #   wx.login → /api/login/signIn
-│   ├── pages/              #   首页 / 图片编辑 / 视频编辑 / 结果 / 记录 / 我的
-│   ├── packageAdmin/       #   小程序内管理后台（6 页）
-│   └── packageCommon/      #   关于 / 隐私 / 公告
-├── server/                 # ★ 后端服务（MySQL 版）
-│   ├── db/schema.sql       #   建库建表脚本
-│   ├── lib/                #   JWT / 配额 / 文件 / FFmpeg / 滤镜图
-│   ├── routes/             #   login / job / videoProc / admin / upload
-│   ├── services/videoQueue.js  # 视频处理队列（并发 1）
-│   └── server.js           #   入口（含定时清理）
-├── admin-web/index.html    # Web 管理后台（单文件，双击即用）
-├── design/ui-design.html   # 界面设计稿
-├── cloudfunctions/         # （旧版遗留，可删）
-└── video-service/          # （旧版遗留，可删）
+├── miniprogram/                    # 小程序（图片功能开箱即用）
+│   ├── utils/constants.js          #   ★ 唯一需要改的文件：VIDEO_API_BASE_URL
+│   ├── utils/localdb.js            #   本地记录仓库（记录 + 缩略图 + 成品）
+│   ├── services/job.js             #   记录 CRUD（全部落本地）
+│   ├── services/video.js           #   视频服务客户端
+│   ├── pages/                      #   首页 / 图片编辑 / 视频编辑 / 结果 / 记录 / 我的
+│   └── packageCommon/              #   关于 / 隐私 / 使用须知
+├── video-service-lite/             # ★ 极简视频服务（可选）
+│   ├── server.js                   #   Express + 队列 + 定时清理
+│   ├── lib/graph.js                #   FFmpeg 滤镜图（fill/blur/mosaic/crop/delogo）
+│   ├── lib/ffmpeg.js               #   转码 / 探测 / 抽帧
+│   ├── Dockerfile                  #   node:20-alpine + ffmpeg
+│   └── .env.example
+├── tools/
+│   ├── doctor.js                   #   环境自检
+│   ├── check-miniprogram.js        #   小程序静态自检（require / 页面 / 事件）
+│   ├── test-video.js               #   视频链路测试（29 项）
+│   ├── get-ffmpeg.js               #   下载内置 ffmpeg
+│   └── lan-ip.js                   #   打印局域网地址
+└── project.config.json
 ```
 
-## 三、五步部署
+---
 
-### 1. 建库
+## 四、快速开始
+
+### 4.1 只做图片（零配置）
+
+1. 微信开发者工具导入项目根目录
+2. 直接编译运行
+
+不需要服务器、不需要填任何地址。图片处理、记录、保存相册全部可用。
+
+### 4.2 加上视频去水印
+
+#### 本地跑（开发和真机调试）
 
 ```bash
-mysql -u root -p < server/db/schema.sql
-```
-
-自动创建 `wc_watermark` 库与 5 张表：`wc_users`（用户与配额）、`wc_jobs`（任务）、`wc_admins`（管理员白名单）、`wc_logs`（操作日志）、`wc_settings`（单行全局配置）。
-
-### 2. 配置后端
-
-```bash
-cd server
+cd video-service-lite
 npm install
-cp .env.example .env    # 填写：DB_PASSWORD / JWT_SECRET / WX_APPID / WX_SECRET
+cp .env.example .env      # 可选，改端口/令牌/时长上限
+npm start
 ```
 
-`.env` 关键项：
-
-| 变量 | 说明 |
-|---|---|
-| `DB_*` | MySQL 连接（对应 schema.sql 建的库） |
-| `JWT_SECRET` | 改成随机长字符串 |
-| `WX_APPID` / `WX_SECRET` | 小程序凭证；**不填则走开发模式**（openid 用 code 哈希模拟，仅限本地调试） |
-| `UPLOAD_DIR` | 文件存储目录，默认 `server/uploads` |
-| `INIT_ADMIN_KEY` | 可选：指定初始后台密钥（不填自动随机生成） |
-
-### 3. 启动
-
-```bash
-node server.js
-```
-
-启动日志会打印：
+启动后终端会打印：
 
 ```
-★ 已生成后台访问密钥（请立即保存）：xxxxxxxxxxxxxxxx
-✓ 服务已启动: http://localhost:3000
+  极简视频去水印服务已启动
+  监听      http://0.0.0.0:3100
+  FFmpeg    .../tools/bin/ffmpeg.exe  (项目内置 tools/bin)
 ```
 
-> FFmpeg：视频功能需要 `ffmpeg` / `ffprobe`。**本项目已内置**（`tools/bin/ffmpeg.exe`，v6.1.1），并在 `server/.env` 中通过 `FFMPEG_PATH` 指向它，无需额外安装。
-> 换机器或丢失时用 `node tools/get-ffmpeg.js` 自动补装；仅影响视频线，图片线不受影响。
-
-### 4. 对接小程序
-
-**本地开发用 `node tools/doctor.js` 一键自检环境**（Node / MySQL / 数据表 / FFmpeg / 端口 / 小程序地址 / AppID 共 8 项）。
-
-编辑 `miniprogram/utils/constants.js`：
+然后把地址填进 `miniprogram/utils/constants.js`：
 
 ```js
-const API_BASE_URL = 'https://your-domain.com';   // 换成你的后端地址
+// 模拟器调试
+const VIDEO_API_BASE_URL = 'http://127.0.0.1:3100';
+
+// 真机调试：换成电脑的局域网 IP（先跑 node tools/lan-ip.js 查看）
+// 手机和电脑必须在同一个 WiFi，电脑防火墙放行 3100
+const VIDEO_API_BASE_URL = 'http://192.168.1.23:3100';
 ```
 
-- 本地调试：开发者工具 → 详情 → 本地设置 → 勾选「不校验合法域名」，用 `http://localhost:3000`
-- 正式上线：必须是 **https + 备案域名**，并在「小程序后台 → 开发设置 → 服务器域名」把域名加入 **request 与 uploadFile 合法域名**
+开发者工具「详情 → 本地设置」勾选 **不校验合法域名**。
 
-### 5. 登录后台
-
-双击打开 `admin-web/index.html`（或托管到任意静态服务器）：
-
-1. 填后端地址 + 启动日志里的密钥 → 登录
-2. 第一次进小程序产生真实用户后，到「用户权限」→ 管理 → 「设为管理员」把对方加入白名单，对方即可用小程序端后台
-
-## 四、权限管理（核心能力）
-
-| 维度 | 说明 |
-|---|---|
-| **用户封禁 / 解封** | 封禁后该 openid 所有请求立即被拒（403），可填封禁原因 |
-| **角色分配** | `operator`（只读）与 `super`（可写），写入 `wc_admins` 白名单，小程序端后台按此降权 |
-| **独享配额** | 按用户覆盖每日图片/视频次数，填 0 = 跟随全局配置 |
-| **删除用户** | 连同其全部任务与磁盘文件 |
-| **管理员白名单** | 新增 / 移除小程序端管理员（Web 后台不受白名单限制，凭密钥即 super） |
-| **全局配置** | 配额、视频开关、注册开关、公告、版权提示、密钥轮换 |
-
-**鉴权模型**（服务端 `lib/auth.js`，三选一）：
-
-1. 密钥令牌 —— Web 后台用密钥换 JWT，`role = super`
-2. 用户令牌 + 白名单 —— 小程序管理员，角色按 `wc_admins` 记录
-3. 请求体 `__key` —— 小程序端旧流程兼容，等于 `adminKey` 即 super
-
-所有写操作要求 `super`；`operator` 只能读。全部动作记入 `wc_logs`。
-
-## 五、接口一览（POST，信封 `{code, data, msg}`）
-
-| 模块 | 动作 | 鉴权 |
-|---|---|---|
-| `/api/login` | signIn / profile / updateProfile / quota / stats / consume | signIn 免鉴权，其余用户令牌 |
-| `/api/job` | create / list / detail / remove / removeAll / retry / stats / markSaved | 用户令牌（只能操作自己） |
-| `/api/videoProc` | submit / status / service | 用户令牌 |
-| `/api/admin` | login / check / overview / users / userDetail / userUpdate / jobs / jobUpdate / settings / settingsUpdate / logs / admins / adminAdd / adminRemove / cleanData | 管理鉴权（见上） |
-| `/api/upload` | multipart 上传（`file` + `dir` 字段） | 用户令牌 |
-| `/api/file/remove` | 删除文件 | 用户令牌 |
-| `/files/*` | 成品文件静态访问 | 公开（建议生产加防盗链） |
-| `/healthz` | 健康检查 | 公开 |
-
-业务码：`0` 成功 / `401` 未登录 / `403` 无权限或封禁 / `404` 不存在 / `429` 配额用完 / `500` 服务异常。
-
-## 六、数据表
-
-| 表 | 用途 | 关键字段 |
-|---|---|---|
-| `wc_users` | 用户与配额 | `openid`(唯一)、`banned`/`ban_reason`、`limit_image`/`limit_video`(0=跟随全局)、`used_*`/`used_*_date`(跨天重置) |
-| `wc_jobs` | 处理任务 | `id`、`openid`、`type`(image/video)、`status`、`progress`、`src_file`/`out_file`/`thumb_file`、`expires_at` |
-| `wc_admins` | 管理员白名单 | `openid`(唯一)、`role`(operator/super) |
-| `wc_logs` | 操作日志 | `action`、`detail`、`operator` |
-| `wc_settings` | 全局配置（单行） | 配额 / 开关 / 文案 / `admin_key` |
-
-配额扣减是**单条原子 UPDATE**（跨天重置 + 上限 + 封禁校验合一），并发不会超扣。
-
-## 七、视频处理原理
-
-1. 小程序上传源视频 → `/api/upload`（`formData.dir = 'src/videos'`）
-2. `/api/videoProc/submit`：校验开关与时长上限 → 原子扣视频配额 → 任务落库 `pending` → 入队
-3. 队列（并发 1）：`ffprobe` 探测 → 构建滤镜图 → `ffmpeg -filter_complex ... -progress pipe:1` 转码，进度节流回写 MySQL（映射到 10%–95% 区间）
-4. 完成：产物落 `output/videos/<id>.mp4`、设 `expires_at`、删源文件；音轨直拷失败自动退回 aac 重编码
-5. 小程序 3 秒轮询 `/api/videoProc/status`；服务端每 30 分钟清理过期任务 / 回收卡死任务 / 清 90 天前日志
-
-滤镜图统一走「带内边距裁剪 → 局部处理（boxblur / delogo / 马赛克）→ overlay 原位叠加」，时间区间只在 `overlay` 的 `enable` 上控制，规避 `boxblur`/`delogo` 对时间轴支持不稳定的坑。
-
-## 八、排查表
-
-| 现象 | 原因 / 处理 |
-|---|---|
-| 小程序提示「尚未配置后端地址」 | `constants.js` 里 `API_BASE_URL` 还是占位值 |
-| 「域名未加入合法域名」 | 小程序后台加 request/uploadFile 域名，或开发时勾选「不校验合法域名」 |
-| 「无法连接后端服务」 | server 没启动 / 端口不对 / 防火墙 |
-| 登录返回「微信登录失败 40029」 | code 无效（AppID 与密钥不匹配，或 code 已被用） |
-| openid 是 `dev_xxx` | 未配置 `WX_APPID/WX_SECRET`（开发模式） |
-| 提示「无管理权限」 | 密钥错误，或用户不在白名单；先在 Web 后台核对 |
-| 视频提交报「功能未开启」 | 配置页打开「启用视频处理」开关 |
-| 视频一直排队 | 服务器没装 FFmpeg；用 `/api/videoProc/service` 探测 |
-| 图片任务成功但列表图挂了 | `/files/` 路径被 Nginx 拦截；确认静态目录映射到 `server/uploads` |
-| 429 频繁 | 全局配额太紧，或给该用户配独享配额 |
-
-## 九、上线检查清单
-
-- [ ] `.env`：`JWT_SECRET` 已改、`WX_APPID/SECRET` 已填（退出开发模式）
-- [ ] MySQL 定期备份已配置（`node tools/backup.js`，见 §十一）
-- [ ] https 证书 + 域名备案完成，域名已加入小程序 request/uploadFile 白名单
-- [ ] FFmpeg 已安装且 `/api/videoProc/service` 返回 `available: true`
-- [ ] 启动日志打印的后台密钥已妥善保存（或用 `INIT_ADMIN_KEY` 指定）
-- [ ] 磁盘监控：上传目录会随使用增长，靠 `cloudKeepHours` + 定时清理兜底
-- [ ] Nginx 反向代理时把 `client_max_body_size` 调到 ≥ 200m（视频上传）
-- [ ] `admin-web` 不要公网裸放，建议加 IP 白名单或basic auth
-
-## 十、合规提示（审核相关）
-
-- 类目建议：工具 → 图片/视频处理
-- 全部文案保持「清理自有素材水印」表述
-- 隐私政策已内置（`packageCommon/pages/privacy`），需在小程序后台填写《用户隐私保护指引》并声明相册写入用途
-- 后台 6 个页面已在 `sitemap.json` 中 disallow，不会被搜一搜收录
-
-## 十一、备份与换电脑迁移
-
-项目的数据分散在 **四处**，其中三处 Git 管不到，换电脑时正是这三处最容易丢：
-
-| 资产 | 位置 | Git 是否收录 | 怎么搬 |
-|---|---|---|---|
-| 代码 / 文档 / 脚本 | 项目目录 | ✅ 已收录 | `git clone` |
-| **数据库** | 本机 MySQL（不在项目目录内！） | ❌ | `tools/backup.js` 导出 SQL |
-| **上传与产物** | `server/uploads/` | ❌ 体积会涨，已 ignore | `tools/backup.js` 复制 |
-| **运行时配置** | `server/.env` | ❌ 含密钥，已 ignore | `tools/backup.js` 复制 |
-
-### 日常备份
+#### 部署成公网服务（Docker / 云托管）
 
 ```bash
-node tools/backup.js                 # → backup/<时间戳>/
-node tools/backup.js --out D:/备份    # 直接写到别处（如云盘同步目录）
-node tools/backup.js --keep-dumps 5  # 只保留最近 5 份
+cd video-service-lite
+docker build -t wc-video .
+docker run -d -p 3100:3100 -e CLIENT_TOKEN=你的令牌 wc-video
 ```
 
-产出结构与恢复步骤会自动生成在备份目录里的 `恢复说明.md`。导出方式优先用 `mysqldump`，
-系统里没有它时自动切到内置导出器（纯 Node 读表生成 SQL），所以新电脑没装 MySQL Client 也能备份。
+云托管（腾讯云 / 任何容器平台）：
 
-> ⚠️ 备份目录含 `server.env.txt`（数据库密码 + 密钥），**不要提交到仓库、不要公开分享**。
-> `backup/` 已在 `.gitignore` 中。
+1. 新建服务，代码目录选 `video-service-lite`
+2. 端口填 **3100**（或让平台注入 `PORT`）
+3. 环境变量：`CLIENT_TOKEN=你的令牌`、`KEEP_HOURS=24`
+4. 部署后拿到 https 地址，填进 `VIDEO_API_BASE_URL`
 
-### 换电脑五步
+> 云托管不需要域名备案，平台会给一个默认 https 域名；自定义域名才需要备案。
+
+---
+
+## 五、小程序端配置
+
+只有一处要改：`miniprogram/utils/constants.js`
+
+```js
+const VIDEO_API_BASE_URL = 'https://xxxx.sh.run.tcloudbase.com';
+const VIDEO_CLIENT_TOKEN = '与服务端 CLIENT_TOKEN 保持一致';
+```
+
+上线前在微信公众平台 → 开发管理 → 服务器域名，把视频服务域名同时加入：
+
+| 类型 | 是否必需 | 用途 |
+|---|---|---|
+| `uploadFile` 合法域名 | 视频必需 | 上传视频 |
+| `request` 合法域名 | 视频必需 | 轮询状态、探测服务 |
+
+图片功能不产生任何请求，**一个域名都不用配**。
+
+---
+
+## 六、数据存在哪
+
+| 内容 | 位置 | 生命周期 |
+|---|---|---|
+| 图片成品 | 本机 `USER_DATA_PATH/wc/outputs/` | 删记录/清缓存/卸载即删 |
+| 缩略图 | 本机 `USER_DATA_PATH/wc/thumbs/` | 同上 |
+| 处理记录 | 本机 `USER_DATA_PATH/wc/data/records.json` | 同上 |
+| 视频源文件 | 视频服务临时目录 | 处理完**立即删除** |
+| 视频结果 | 视频服务 `output/` | 默认 24 小时，到期自动删 |
+
+本机数据上限：**150MB 或 300 条记录**，先到者生效。
+超出时按时间从旧到新删除成品文件（保留记录与缩略图），旧记录点开会提示「文件已过期」。
+
+**换手机、清缓存、卸载微信都会丢记录**，重要结果请保存到相册。
+
+---
+
+## 七、视频服务接口
+
+```
+POST /api/video/submit    multipart：file + mode/region/timeRange/duration/fileName
+GET  /api/video/status    ?id=xxx
+GET  /api/video/service   探测 FFmpeg 是否就绪
+GET  /files/:name         产物下载（mp4 / jpg）
+GET  /healthz             健康检查
+```
+
+`region` 为归一化坐标 `{x,y,w,h}`（0–1），语义是**水印所在的框**；
+`crop` 模式会裁掉该框、保留剩余面积最大的一侧。
+
+`mode` 支持：`fill` / `blur` / `mosaic` / `crop` / `delogo`。
+
+状态值：`pending` → `processing` → `done` / `failed`。
+
+---
+
+## 八、常见问题
+
+**Q：视频为什么不能也做成纯本地？**
+小程序开放了 `wx.createVideoDecoder`（逐帧解码），但**没有开放视频编码器**，无法把处理后的帧重新封装成 mp4；`ffmpeg` 二进制约 140MB，也远超小程序包与云函数（20MB）限制。这是平台硬约束，不是实现选择。
+
+**Q：不配视频服务会怎样？**
+首页的视频入口会提示「视频服务未配置」，图片功能完全不受影响。
+
+**Q：接口会不会被人盗用？**
+服务端 `CLIENT_TOKEN` 与小程序端 `VIDEO_CLIENT_TOKEN` 一致即可挡掉随意调用。要更严就得回到账号+配额体系（旧版方案）。
+
+**Q：能多人同时用吗？**
+可以，`CONCURRENCY` 默认 1（串行转码）。机器配置好可调到 2–4。
+
+**Q：审核会被拒吗？**
+去水印类工具审核偏严。建议：类目选「工具」，描述写「清理自有素材上的水印」，不要在名称/简介里出现「破解」「去他人水印」。隐私政策已写明不收集个人信息，可作辅助材料。
+
+**Q：怎么换回有数据库的版本？**
+`git log` 找到 `eef111b`，`git checkout eef111b -- .` 即可恢复。旧版的部署说明在对应提交的 README 里。
+
+---
+
+## 九、自检与测试
 
 ```bash
-# 1. 装环境：Node 18+、MySQL 8、Git
-# 2. 取代码
-git clone <仓库地址> watermark-cleaner && cd watermark-cleaner/server && npm install
-# 3. 还原配置：把备份里的 server.env.txt 复制成 server/.env（按需改 DB 密码 / 端口）
-# 4. 还原数据库与文件
-mysql -u root -p < <备份>/db/wc_watermark.sql
-cp -r <备份>/uploads/* uploads/
-# 5. 下载 FFmpeg 并自检
-cd .. && node tools/get-ffmpeg.js && node tools/doctor.js
+node tools/doctor.js            # 环境：Node / FFmpeg / 依赖 / 服务 / 配置
+node tools/check-miniprogram.js ./miniprogram   # 静态：require / 页面 / 事件绑定
+node tools/test-video.js        # 视频链路：29 项断言
 ```
 
-### 已为可移植性做的处理
+`doctor.js` 输出示例：
 
-- **FFmpeg 路径自动探测**（`server/lib/binpath.js`）：按 `.env` 配置 → 项目内置 `tools/bin` → 系统 PATH 依次查找。
-  原来的 `.env` 里写死了本机绝对路径，换机后视频功能会直接失效；现在换成任何一个可用的即可，
-  `/api/videoProc/service` 会回报实际用的是哪一个。
-- **换行符统一**（`.gitattributes`）：避免在 Windows 与其它系统之间来回 diff。
-- **存储路径限定项目内**：后台「配置 → 存储路径」只允许选项目文件夹内的目录，避免指到别的盘后
-  文件与数据库对不上（详见 `server/lib/storage.js`）。
-- **权限探针自动清扫**：写权限检测若被异常中断，残留的探针文件会在下次检查时自动清掉，不会污染上传目录与备份。
+```
+  ✓ Node 版本   22.22.2
+  ✓ ffmpeg   tools/bin  .../tools/bin/ffmpeg.exe
+  ✓ 视频服务依赖   已安装
+  ✓ 小程序视频地址   http://192.168.31.74:3100
+  ✗ 视频服务运行中   未启动 —— cd video-service-lite && npm start
+```
+
+---
+
+## 十、上线前检查
+
+- [ ] `VIDEO_API_BASE_URL` 已改为 https 正式地址
+- [ ] 公众平台已添加 `uploadFile` / `request` 合法域名
+- [ ] 服务端 `CLIENT_TOKEN` 已设置且与小程序一致
+- [ ] 隐私政策中的「联系我们」方式真实可用
+- [ ] 真机跑一遍：图片处理 → 保存相册 → 记录 → 删除
+- [ ] 真机跑一遍：视频上传 → 进度 → 下载到相册
+- [ ] 小程序类目、名称、简介不含侵权导向表述

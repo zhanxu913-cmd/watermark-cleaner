@@ -16,18 +16,6 @@
         "pages/privacy/index",
         "pages/notice/index"
       ]
-    },
-    {
-      "root": "packageAdmin",
-      "name": "admin",
-      "pages": [
-        "pages/dashboard/index",
-        "pages/users/index",
-        "pages/user-detail/index",
-        "pages/jobs/index",
-        "pages/config/index",
-        "pages/logs/index"
-      ]
     }
   ],
   "preloadRule": {

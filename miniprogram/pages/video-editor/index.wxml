@@ -107,7 +107,7 @@
   <!-- 说明 -->
   <view class="panel">
     <view class="notice plain">
-      <view class="notice-tx">{{queueHint}}处理完成后云端原件会在 1 小时内自动删除。</view>
+      <view class="notice-tx">{{queueHint}}源视频处理完立即删除，结果在服务端保留 24 小时。</view>
     </view>
   </view>
 

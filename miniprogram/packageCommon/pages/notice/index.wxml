@@ -1,29 +1,20 @@
 <view class="page">
-  <nav-bar showBack title="平台公告" />
+  <nav-bar showBack title="使用须知" />
 
   <view class="page-body">
-    <view wx:if="{{loading}}" class="skeleton sk-block"></view>
-
-    <block wx:elif="{{hasNotice}}">
-      <view wx:if="{{maintenance}}" class="sect">
-        <view class="notice warn">
-          <view class="notice-bar"></view>
-          <view class="notice-tx">{{maintenance}}</view>
+    <view class="sect">
+      <view class="notice warn">
+        <view class="notice-bar"></view>
+        <view class="notice-tx">
+          仅用于清理你拥有版权的素材。去除他人作品水印可能构成侵权。
         </view>
       </view>
+    </view>
 
-      <view wx:if="{{notice}}" class="sect">
-        <view class="notice-body">{{notice}}</view>
-        <view class="copy-btn" bindtap="copy">复制公告内容</view>
-      </view>
-    </block>
-
-    <empty-state
-      wx:else
-      icon="box"
-      title="暂无公告"
-      desc="有新消息时会显示在这里"
-    />
+    <view wx:for="{{sections}}" wx:key="h" class="sect card">
+      <view class="t-card">{{item.h}}</view>
+      <view class="notice-body">{{item.p}}</view>
+    </view>
 
     <view class="page-bottom-hold"></view>
   </view>

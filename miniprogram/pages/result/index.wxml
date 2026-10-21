@@ -205,7 +205,7 @@
       <view wx:if="{{status === 'done'}}" class="sect">
         <view class="notice ok">
           <view class="notice-bar"></view>
-          <view class="notice-tx">{{isVideo ? '云端副本将在 1 小时内自动删除，保存到相册的文件长期保留。' : '原图未上传，处理全程在你的设备上完成。'}}</view>
+          <view class="notice-tx">{{isVideo ? '服务端副本会在 24 小时内自动删除，保存到相册的文件长期保留。' : '原图未上传，处理全程在你的设备上完成。'}}</view>
         </view>
       </view>
 

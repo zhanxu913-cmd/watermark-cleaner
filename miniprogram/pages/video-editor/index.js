@@ -1,6 +1,6 @@
 const app = getApp();
 const image = require('../../utils/image');
-const cloud = require('../../utils/cloud');
+const localdb = require('../../utils/localdb');
 const jobApi = require('../../services/job');
 const { MODE, MODE_DESC } = require('../../utils/constants');
 const { toast, clamp, formatDuration, humanDuration } = require('../../utils/util');
@@ -74,7 +74,6 @@ Page({
     this._imgH = pending.height || 0;
 
     const duration = Math.max(1, Math.round(pending.duration || 0));
-    const settings = app.globalData.settings || {};
 
     this.setData({
       src: pending.path,
@@ -654,48 +653,70 @@ Page({
     this.pauseVideo();
     this.setData({ submitting: true, progress: 0, progressLabel: '上传视频' });
 
-    try {
-      // 1) 上传视频到云存储（原视频处理完会随任务一起清理）
-      const up = await cloud.upload(this.data.src, 'src/videos', (p) => {
-        this.setData({ progress: Math.round(p * 0.6), progressLabel: '上传视频' });
-      });
-
-      // 2) 上传缩略图
-      let thumbFileID = '';
-      if (this.data.thumbSrc) {
-        try {
-          const t = await cloud.upload(this.data.thumbSrc, 'thumb/videos');
-          thumbFileID = t.fileID;
-        } catch (e) {
-          /* 忽略 */
-        }
+    // 缩略图先落地到本机：视频结果回来之前，记录列表靠它显示封面
+    let thumbFileID = '';
+    if (this.data.thumbSrc) {
+      try {
+        thumbFileID = localdb.persistFile(this.data.thumbSrc, 'thumb');
+      } catch (e) {
+        /* 忽略 */
       }
+    }
 
-      // 3) 提交处理任务
-      this.setData({ progress: 68, progressLabel: '提交处理任务' });
-      const res = await jobApi.submitVideo({
-        srcFileID: up.fileID,
-        thumbFileID,
+    // 先写一条 pending 记录：即使上传中途退出，记录页也能看到这条任务
+    let rec = null;
+    try {
+      rec = await jobApi.create({
+        type: 'video',
+        status: 'pending',
+        progress: 0,
         fileName: this.data.fileName,
         duration: this.data.duration,
         width: this._imgW || 0,
         height: this._imgH || 0,
+        mode: this.data.mode,
         region: this.data.region,
         timeRange: { start: this.data.startSec, end: this.data.endSec },
-        mode: this.data.mode
+        thumbFileID
       });
+    } catch (e) {
+      this.setData({ submitting: false, progress: 0, progressLabel: '' });
+      return toast('写入记录失败，请检查本机存储空间');
+    }
+
+    try {
+      // 上传视频 + 创建远程任务在同一个请求里完成（不再分两步）
+      const res = await jobApi.submitVideo(
+        {
+          src: this.data.src,
+          mode: this.data.mode,
+          region: this.data.region,
+          timeRange: { start: this.data.startSec, end: this.data.endSec },
+          duration: this.data.duration,
+          fileName: this.data.fileName
+        },
+        (p) => {
+          this.setData({
+            progress: Math.round(p * 0.9),
+            progressLabel: p < 100 ? '上传视频 ' + p + '%' : '服务端排队中'
+          });
+        }
+      );
+
+      await jobApi.update(rec.id, { remoteId: res.jobId, status: 'pending', progress: 0 });
 
       this.setData({ progress: 100, progressLabel: '已进入队列' });
       app.bumpJob();
 
       // 提交完成后直接进入「处理记录」，用户可在列表里看到排队/处理进度
-      app.globalData.pending = { jobId: res.jobId, fileName: this.data.fileName };
+      app.globalData.pending = { jobId: rec.id, fileName: this.data.fileName };
       setTimeout(() => {
         wx.switchTab({ url: '/pages/records/index' });
-        // 配额刷新放到跳转之后，避免与列表页首次查询抢登录态
-        app.refresh().catch(() => {});
       }, 280);
     } catch (e) {
+      // 提交失败也要落状态，避免记录页永远停在「排队中」
+      jobApi.update(rec.id, { status: 'failed', error: e.message || '提交失败' }).catch(() => {});
+      app.bumpJob();
       this.setData({ submitting: false, progress: 0, progressLabel: '' });
       toast(e.message || '提交失败，请重试');
     }

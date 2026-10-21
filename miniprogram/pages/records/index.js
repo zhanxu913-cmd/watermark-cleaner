@@ -1,6 +1,5 @@
 const app = getApp();
 const jobApi = require('../../services/job');
-const cloud = require('../../utils/cloud');
 const { toast, confirm, debounce, ensureAlbumAuth, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt } = require('../../utils/util');
 
 const FILTERS = [
@@ -13,7 +12,7 @@ const FILTERS = [
 const EMPTY_TEXT = {
   all: { title: '还没有处理记录', desc: '去首页选一张图片或视频开始' },
   image: { title: '没有图片记录', desc: '试试处理一张图片' },
-  video: { title: '没有视频记录', desc: '视频去水印需要先开启云服务' },
+  video: { title: '没有视频记录', desc: '视频去水印需要先配置视频服务' },
   unsaved: { title: '没有未保存的结果', desc: '所有处理结果都已存进相册' }
 };
 
@@ -70,25 +69,49 @@ Page({
 
   startPoll() {
     if (this._pollTimer) return;
-    this._pollTimer = setInterval(() => {
-      jobApi
-        .list({ page: 1, pageSize: this.data.pageSize, filter: this.data.filter, keyword: this.data.keyword || undefined })
-        .then((res) => {
-          const raw = (res && res.list) || [];
-          return this.decorate(raw).then((list) => {
-            this.setData({
-              list: list.map((j) => Object.assign({}, j, { checked: false })),
-              page: 1,
-              hasMore: !!(res && res.hasMore),
-              selectedIds: [],
-              selectedCount: 0
-            });
-            this._jobVersion = app.globalData.version.job;
-            this.syncPoll(list);
-          });
-        })
-        .catch(() => {});
-    }, 4000);
+    this._pollTimer = setInterval(() => this.pollOnce(), 3000);
+  },
+
+  /**
+   * 轮询远程视频任务，把进度 / 结果地址回填到本地记录。
+   * 图片记录不走这里（本地处理，创建即完成）。
+   */
+  async pollOnce() {
+    const busy = (this.data.list || []).filter(
+      (j) => (j.status === 'pending' || j.status === 'processing') && j.remoteId
+    );
+    if (!busy.length) {
+      this.stopPoll();
+      return;
+    }
+
+    let changed = false;
+    for (let i = 0; i < busy.length; i++) {
+      const j = busy[i];
+      try {
+        const r = await jobApi.videoStatus(j.remoteId);
+        const patch = {
+          status: r.status || j.status,
+          progress: Number(r.progress) || 0
+        };
+        if (r.status === 'done') {
+          patch.progress = 100;
+          patch.outFileID = r.url || j.outFileID || '';
+          patch.thumbFileID = r.thumbUrl || j.thumbFileID || '';
+        } else if (r.status === 'failed') {
+          patch.error = r.error || '处理失败';
+        }
+        jobApi.update(j.id, patch);
+        changed = true;
+      } catch (e) {
+        /* 单条查询失败不打断其它任务 */
+      }
+    }
+
+    if (changed) {
+      app.bumpJob();
+      this.reload();
+    }
   },
 
   stopPoll() {
@@ -160,21 +183,14 @@ Page({
       });
   },
 
-  // 把云端 fileID（相对路径）统一换成可访问的 http 地址。
-  // 注意：结果文件 outFileID 也必须一起换，否则下载时会把相对路径当成
-  // 本地路径传给 saveVideoToPhotosAlbum，必然失败。
+  // 本地路径可直接用于 <image> 与保存相册，不需要再换取临时链接。
+  // 视频结果是服务端 https 地址，下载时由 util.downloadFile 负责拉取。
   decorate(list) {
-    const ids = [];
-    list.forEach((j) => {
-      if (j.thumbFileID) ids.push(j.thumbFileID);
-      if (j.outFileID) ids.push(j.outFileID);
-    });
-    if (!ids.length) return Promise.resolve(list);
-    return cloud.tempUrls(ids).then((map) =>
+    return Promise.resolve(
       list.map((j) =>
         Object.assign({}, j, {
-          thumbUrl: map[j.thumbFileID] || '',
-          outUrl: map[j.outFileID] || ''
+          thumbUrl: j.thumbFileID || j.outFileID || '',
+          outUrl: j.outFileID || ''
         })
       )
     );
@@ -265,7 +281,7 @@ Page({
     const ids = this.data.selectedIds;
     if (!ids.length) return toast('请先选择要删除的记录');
 
-    const ok = await confirm('将删除 ' + ids.length + ' 条记录，云端文件会一并清理，确定吗？');
+    const ok = await confirm('将删除 ' + ids.length + ' 条记录及本机文件，此操作不可恢复，确定吗？');
     if (!ok) return;
 
     jobApi
@@ -357,7 +373,7 @@ Page({
   },
 
   async clearAll() {
-    const ok = await confirm('确定清空全部处理记录吗？云端文件会一并删除，此操作不可恢复。');
+    const ok = await confirm('确定清空全部处理记录吗？本机文件会一并删除，此操作不可恢复。');
     if (!ok) return;
 
     jobApi

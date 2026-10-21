@@ -1,0 +1,17 @@
+{
+  "name": "wc-video-service-lite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "极简视频去水印服务：无数据库、无登录，只有一个 FFmpeg 队列",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.0.2"
+  }
+}

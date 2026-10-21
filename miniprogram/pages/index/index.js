@@ -1,50 +1,35 @@
 const app = getApp();
 const jobApi = require('../../services/job');
-const cloud = require('../../utils/cloud');
+const localdb = require('../../utils/localdb');
+const { VIDEO_LIMITS } = require('../../utils/constants');
 const { toast } = require('../../utils/util');
 
 const IMAGE_MAX_SIZE = 20 * 1024 * 1024;
 
 Page({
   data: {
-    ready: false,
-    bootError: '',
-    user: null,
-    isAdmin: false,
-    settings: {},
-    copyrightTip: '',
+    copyrightTip: '请仅处理你拥有版权的素材。去除他人作品水印可能构成侵权。',
     recent: [],
     recentLoading: true,
     videoServiceEnabled: true,
-    videoHint: '',
-    videoServiceMsg: '',
-    quotaText: ''
+    videoHint: '框选区域 + 时间区间',
+    storageText: ''
   },
 
   onLoad() {
-    this._unsub = app.subscribe(() => this.syncGlobal());
     this._jobVersion = -1;
-    this.syncGlobal();
     this.bootstrap();
   },
 
-  onUnload() {
-    if (this._unsub) this._unsub();
-  },
-
   onShow() {
-    this.syncGlobal();
-    if (this.data.ready && this._jobVersion !== app.globalData.version.job) {
-      this.loadRecent();
-    }
+    if (this._jobVersion !== app.globalData.version.job) this.loadRecent();
     this.consumeAutoPick();
     this.checkVideoService();
   },
 
   /**
-   * 探测视频服务真实可用性。
-   * 只看后台开关不够：开关开了但服务器没装 FFmpeg 一样用不了；
-   * 反之接口偶发失败也不该把功能判死。以服务端 available 为准，失败时保持开启。
+   * 探测视频服务可用性。
+   * 地址没配时不再判死整个页面 —— 图片线完全不依赖服务，照常可用。
    */
   checkVideoService() {
     jobApi
@@ -54,13 +39,11 @@ Page({
         const available = !!res.available;
         this.setData({
           videoServiceEnabled: available,
-          videoHint: available ? '框选区域 + 时间区间' : res.message || '服务暂不可用',
-          videoServiceMsg: res.message || ''
+          videoHint: available ? '框选区域 + 时间区间' : res.message || '服务暂不可用'
         });
       })
       .catch(() => {
-        // 探测失败不降级：配置已永久开启，避免误判为未启用
-        this.setData({ videoServiceEnabled: true });
+        this.setData({ videoServiceEnabled: false, videoHint: '视频服务暂不可用' });
       });
   },
 
@@ -77,56 +60,24 @@ Page({
   },
 
   onPullDownRefresh() {
-    Promise.all([
-      app.refresh().catch(() => {}),
-      this.loadRecent().catch(() => {})
-    ]).then(() => wx.stopPullDownRefresh());
+    this.loadRecent().then(() => wx.stopPullDownRefresh());
   },
 
   onShareAppMessage() {
     return {
-      title: '水印清理 · 本地处理，不上传原图',
+      title: '水印清理 · 图片本地处理，不上传',
       path: '/pages/index/index'
     };
   },
 
-  /* ---------------- 全局状态同步 ---------------- */
-
-  syncGlobal() {
-    const s = app.globalData.settings || {};
-    const u = app.globalData.user;
-
-    let quotaText = '';
-    if (u) {
-      const img = typeof u.remainImage === 'number' ? u.remainImage : '-';
-      const vid = typeof u.remainVideo === 'number' ? u.remainVideo : '-';
-      quotaText = '今日剩余 图片 ' + img + ' 次 · 视频 ' + vid + ' 次';
-    }
-
-    // 视频入口不再单看后台开关（由 checkVideoService 以服务端探测结果为准）
-    this.setData({
-      user: u,
-      isAdmin: !!app.globalData.isAdmin,
-      bootError: app.globalData.bootError || '',
-      settings: s,
-      copyrightTip:
-        s.copyrightTip || '请仅处理你拥有版权的素材。去除他人作品水印可能构成侵权。',
-      videoServiceEnabled: true,
-      videoHint: '框选区域 + 时间区间',
-      quotaText
-    });
-  },
-
   bootstrap() {
-    app
-      .ready()
-      .then(() => {
-        this.setData({ ready: true });
-        return this.loadRecent();
-      })
-      .catch(() => {
-        this.setData({ ready: true, recentLoading: false });
-      });
+    // 清掉记录里已不存在的孤儿文件，避免占用本地空间
+    try {
+      localdb.gc();
+    } catch (e) {
+      /* 清理失败不影响使用 */
+    }
+    this.loadRecent();
   },
 
   /* ---------------- 最近处理 ---------------- */
@@ -137,52 +88,34 @@ Page({
       .list({ page: 1, pageSize: 6 })
       .then((res) => {
         const list = (res && res.list) || [];
-        return this.decorate(list);
-      })
-      .then((list) => {
-        this.setData({ recent: list, recentLoading: false });
+        this.setData({ recent: this.decorate(list), recentLoading: false });
         this._jobVersion = app.globalData.version.job;
+        this.refreshStorage();
       })
       .catch(() => {
         this.setData({ recentLoading: false });
       });
   },
 
-  /** 批量换取缩略图临时链接 */
+  /** 本地路径可直接给 <image> 用，无需换取临时链接 */
   decorate(list) {
-    const ids = list.map((j) => j.thumbFileID).filter(Boolean);
-    if (!ids.length) return Promise.resolve(list);
-    return cloud.tempUrls(ids).then((map) =>
-      list.map((j) =>
-        Object.assign({}, j, { thumbUrl: map[j.thumbFileID] || '' })
-      )
+    return list.map((j) =>
+      Object.assign({}, j, { thumbUrl: j.thumbFileID || j.outFileID || '' })
     );
+  },
+
+  refreshStorage() {
+    try {
+      const s = localdb.stats();
+      this.setData({ storageText: '记录保存在本机 · 已占 ' + s.bytesText });
+    } catch (e) {
+      /* 统计失败不影响主流程 */
+    }
   },
 
   /* ---------------- 入口 ---------------- */
 
-  guard() {
-    if (!cloud.isConfigured()) {
-      toast(app.globalData.bootError || '后端地址未配置，请检查 constants.js');
-      return false;
-    }
-    if (app.globalData.user && app.globalData.user.status === 'banned') {
-      wx.showModal({
-        title: '账号已被限制',
-        content:
-          (app.globalData.user.banReason || '你的账号当前无法使用本功能') +
-          '，如有疑问请联系管理员。',
-        showCancel: false,
-        confirmColor: '#185FA5'
-      });
-      return false;
-    }
-    return true;
-  },
-
   goImage() {
-    if (!this.guard()) return;
-
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -209,21 +142,19 @@ Page({
   },
 
   goVideo() {
-    if (!this.guard()) return;
-
     if (!this.data.videoServiceEnabled) {
       wx.showModal({
-        title: '视频服务未启用',
+        title: '视频服务未配置',
         content:
-          '视频去水印需要云端 FFmpeg 服务。请先部署 video-service 并在管理后台开启开关，或先使用图片去水印。',
+          '图片去水印完全在本机处理，不受影响；视频去水印需要一台跑 FFmpeg 的机器。请在 utils/constants.js 填写 VIDEO_API_BASE_URL 后重试。',
         showCancel: false,
         confirmColor: '#185FA5'
       });
       return;
     }
 
-    const maxDur = this.data.settings.maxVideoDuration || 60;
-    const maxMB = this.data.settings.maxVideoSizeMB || 100;
+    const maxDur = VIDEO_LIMITS.maxDuration;
+    const maxMB = VIDEO_LIMITS.maxSizeMB;
 
     wx.chooseMedia({
       count: 1,
@@ -272,23 +203,6 @@ Page({
 
   goAbout() {
     wx.navigateTo({ url: '/packageCommon/pages/about/index' });
-  },
-
-  goAdmin() {
-    wx.navigateTo({ url: '/packageAdmin/pages/dashboard/index' });
-  },
-
-  retryBoot() {
-    app.globalData.bootError = '';
-    app.checkApi();
-    if (cloud.isConfigured()) {
-      app.refresh().then(() => {
-        this.setData({ ready: true });
-        this.loadRecent();
-      });
-    } else {
-      this.syncGlobal();
-    }
   }
 });
 
@@ -298,5 +212,6 @@ function pickName(p) {
   const seg = s.split('/').pop() || s.split('\\').pop() || '素材';
   const clean = seg.split('?')[0];
   if (/^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(clean)) return clean;
-  return '素材_' + Date.now().toString().slice(-6) + '.jpg';
+  const ext = /\.([a-zA-Z0-9]{2,5})$/.exec(clean);
+  return '素材_' + Date.now().toString().slice(-6) + '.' + (ext ? ext[1] : 'jpg');
 }

@@ -1,6 +1,6 @@
 const app = getApp();
 const image = require('../../utils/image');
-const cloud = require('../../utils/cloud');
+const localdb = require('../../utils/localdb');
 const jobApi = require('../../services/job');
 const { MODE, MODE_LABEL, MODE_DESC, TOOL } = require('../../utils/constants');
 const { toast, clamp } = require('../../utils/util');
@@ -551,33 +551,34 @@ Page({
         onProgress: (p, label) => this.setData({ progress: p, progressLabel: label })
       });
 
-      // 上传结果（原图不上传，只传处理后的成品与缩略图）
-      this.setData({ progress: 92, progressLabel: '上传结果' });
-      const up = await cloud.upload(result.path, 'output/images');
+      // 结果只保存在本机，不经过任何服务器
+      this.setData({ progress: 92, progressLabel: '保存结果' });
+      const outPath = localdb.persistFile(result.path, 'output');
+      if (!outPath) throw new Error('保存失败，请清理小程序存储空间后重试');
 
       let thumbFileID = '';
       try {
         const thumbPath = await image.makeThumbnail(canvas, result.path, 400);
-        const t = await cloud.upload(thumbPath, 'thumb/images');
-        thumbFileID = t.fileID;
+        thumbFileID = localdb.persistFile(thumbPath, 'thumb');
       } catch (e) {
-        /* 缩略图失败不影响主流程 */
+        /* 缩略图失败不影响主流程，记录页会退回用原图 */
       }
 
       this.setData({ progress: 97, progressLabel: '写入记录' });
       await jobApi.create({
         type: 'image',
+        status: 'done',
         fileName: this.data.fileName,
         mode: isCrop ? MODE.CROP : this.data.mode,
-        outFileID: up.fileID,
+        outFileID: outPath,
         thumbFileID,
         width: result.width,
         height: result.height,
-        regionCount: isCrop ? 1 : this.data.strokes.length
+        regionCount: isCrop ? 1 : this.data.strokes.length,
+        size: localdb.sizeOf(outPath)
       });
 
       app.bumpJob();
-      app.refresh().catch(() => {});
 
       this.setData({ progress: 100, progressLabel: '完成' });
 

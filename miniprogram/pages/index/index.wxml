@@ -5,18 +5,7 @@
     <!-- Hero -->
     <view class="hero">
       <view class="t-hero">清理你自己素材上的水印</view>
-      <view class="hero-sub">图片本地处理，原图不上传第三方</view>
-    </view>
-
-    <!-- 云环境异常 -->
-    <view wx:if="{{bootError}}" class="sect">
-      <view class="notice danger">
-        <view class="notice-bar"></view>
-        <view class="notice-tx">
-          {{bootError}}
-          <view class="boot-retry" bindtap="retryBoot">重新检测</view>
-        </view>
-      </view>
+      <view class="hero-sub">图片全程本机处理，不联网、不上传</view>
     </view>
 
     <!-- 版权提示（常驻，不可关闭） -->
@@ -27,10 +16,9 @@
       </view>
     </view>
 
-    <!-- 配额 -->
-    <view wx:if="{{quotaText}}" class="quota-line">
-      <view class="flex-1">{{quotaText}}</view>
-      <view wx:if="{{isAdmin}}" class="admin-entry" bindtap="goAdmin">管理后台</view>
+    <!-- 本地存储占用 -->
+    <view wx:if="{{storageText}}" class="quota-line">
+      <view class="flex-1">{{storageText}}</view>
     </view>
 
     <!-- 两个入口 -->
