@@ -20,7 +20,7 @@
 // ② 云托管 / 服务器：填平台给的 https 地址
 //      const VIDEO_API_BASE_URL = 'https://xxxx.sh.run.tcloudbase.com';
 //
-const VIDEO_API_BASE_URL = '';
+const VIDEO_API_BASE_URL = 'http://192.168.31.74:3100';
 
 // 与服务端 .env 的 CLIENT_TOKEN 保持一致；两边都留空则不校验（仅建议本地调试时留空）
 const VIDEO_CLIENT_TOKEN = '';
