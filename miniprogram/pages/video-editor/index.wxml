@@ -107,7 +107,7 @@
   <!-- 说明 -->
   <view class="panel">
     <view class="notice plain">
-      <view class="notice-tx">{{queueHint}}源视频处理完立即删除，结果在服务端保留 24 小时。</view>
+      <view class="notice-tx">{{queueHint}}处理全程在本机完成，不联网、不上传，原图原视频始终只在你手机里。</view>
     </view>
   </view>
 
@@ -128,7 +128,7 @@
         <view class="bar-in" style="width:{{progress}}%"></view>
       </view>
       <view class="mask-pct">{{progress}}%</view>
-      <view class="mask-tip">请保持小程序在前台，上传中断可重新提交</view>
+      <view class="mask-tip">请保持小程序在前台，处理中断需重新提交</view>
     </view>
   </view>
 </view>

@@ -1,6 +1,7 @@
 const app = getApp();
 const jobApi = require('../../services/job');
 const localdb = require('../../utils/localdb');
+const localVideo = require('../../utils/local-video');
 const { VIDEO_LIMITS } = require('../../utils/constants');
 const { toast } = require('../../utils/util');
 
@@ -24,27 +25,21 @@ Page({
   onShow() {
     if (this._jobVersion !== app.globalData.version.job) this.loadRecent();
     this.consumeAutoPick();
-    this.checkVideoService();
+    this.checkVideoSupport();
   },
 
   /**
-   * 探测视频服务可用性。
-   * 地址没配时不再判死整个页面 —— 图片线完全不依赖服务，照常可用。
+   * 检测本机是否支持全离线视频处理。
+   * 不支持时置灰入口并说明原因，不影响图片功能。
    */
-  checkVideoService() {
-    jobApi
-      .videoService()
-      .then((res) => {
-        if (!res) return;
-        const available = !!res.available;
-        this.setData({
-          videoServiceEnabled: available,
-          videoHint: available ? '框选区域 + 时间区间' : res.message || '服务暂不可用'
-        });
-      })
-      .catch(() => {
-        this.setData({ videoServiceEnabled: false, videoHint: '视频服务暂不可用' });
+  checkVideoSupport() {
+    const ok = localVideo.isSupported();
+    if (ok !== this.data.videoServiceEnabled) {
+      this.setData({
+        videoServiceEnabled: ok,
+        videoHint: ok ? '框选区域 + 时间区间，离线处理' : '微信版本过低，暂不支持'
       });
+    }
   },
 
   /** 从结果页「再处理一个」回来时，自动唤起选择器 */
@@ -65,7 +60,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '水印清理 · 图片本地处理，不上传',
+      title: '水印清理 · 图片视频本机处理，不上传',
       path: '/pages/index/index'
     };
   },
@@ -144,9 +139,9 @@ Page({
   goVideo() {
     if (!this.data.videoServiceEnabled) {
       wx.showModal({
-        title: '视频服务未配置',
+        title: '当前微信版本暂不支持',
         content:
-          '图片去水印完全在本机处理，不受影响；视频去水印需要一台跑 FFmpeg 的机器。请在 utils/constants.js 填写 VIDEO_API_BASE_URL 后重试。',
+          '图片去水印不受影响，照常可用；视频去水印需要升级微信到较新版本后再试。',
         showCancel: false,
         confirmColor: '#185FA5'
       });

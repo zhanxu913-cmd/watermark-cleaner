@@ -17,7 +17,7 @@ Page({
   },
 
   onShareAppMessage() {
-    return { title: '水印清理 · 图片本地处理不上传', path: '/pages/index/index' };
+    return { title: '水印清理 · 图片视频本机处理不上传', path: '/pages/index/index' };
   },
 
   /* ================= 统计 ================= */

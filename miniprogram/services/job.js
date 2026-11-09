@@ -1,17 +1,15 @@
 /**
  * 任务（处理记录）接口 —— 零后台版
  *
- *  图片记录：全部落在本机（utils/localdb.js），不产生任何网络请求
- *  视频任务：提交给极简视频服务后，把远程任务号记在本地记录里，
- *           由记录页轮询进度并回填结果地址
+ * 图片与视频全部在本机处理，记录落 utils/localdb.js，
+ * 不产生任何网络请求，也没有远程任务轮询。
  *
- * 方法签名保持与原版本一致，页面层只需去掉登录/配额相关调用。
+ * 方法签名保持与原版本一致，页面层无需感知实现变化。
  */
 
 'use strict';
 
 const localdb = require('../utils/localdb');
-const video = require('./video');
 
 /** 把同步调用包成 Promise，保持页面层 .then / .catch 写法不变 */
 function asPromise(fn) {
@@ -23,8 +21,6 @@ function asPromise(fn) {
 }
 
 module.exports = {
-  /* ---------- 本地记录 ---------- */
-
   create(data) {
     return asPromise(() => localdb.create(data));
   },
@@ -45,7 +41,7 @@ module.exports = {
     });
   },
 
-  /** 局部更新（视频任务进度回填） */
+  /** 局部更新（处理进度回填） */
   update(id, patch) {
     return asPromise(() => localdb.update(id, patch));
   },
@@ -72,26 +68,5 @@ module.exports = {
    */
   retry() {
     return Promise.reject(new Error('记录不支持重试，请重新选择素材处理'));
-  },
-
-  /* ---------- 视频：走极简服务 ---------- */
-
-  /**
-   * 提交视频任务
-   * @param {object} data { src 本地视频路径, mode, region, timeRange, duration, fileName }
-   * @param {function} [onProgress]
-   */
-  submitVideo(data, onProgress) {
-    return video.submit(data, onProgress).then((r) => ({ jobId: r.id }));
-  },
-
-  /** 轮询远程任务状态 */
-  videoStatus(remoteId) {
-    return video.status(remoteId);
-  },
-
-  /** 视频服务可用性探测 */
-  videoService() {
-    return video.service();
   }
 };

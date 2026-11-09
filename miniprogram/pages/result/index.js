@@ -215,7 +215,7 @@ Page({
     };
   },
 
-  /** 本地记录的路径可以直接使用；视频结果是服务端返回的 https 地址 */
+  /** 本地记录的路径可以直接使用（图片视频全离线，无远程地址） */
   decorate(job) {
     return Promise.resolve(
       Object.assign({}, job, {
@@ -228,59 +228,10 @@ Page({
 
   /* ================= 视频任务轮询 ================= */
 
+  // 全离线处理后记录创建即完成，不再有远程任务可轮询。
+  // 保留空实现以兼容页面里的既有调用点（processing 状态的旧记录打开时直接结束）。
   startPoll() {
-    if (this._timer) return;
-    this._timer = setInterval(() => {
-      const remoteId = (this.data.job && this.data.job.remoteId) || '';
-      if (!remoteId) {
-        // 图片记录或远程任务号缺失：没有可轮询的对象
-        this.stopPoll();
-        return;
-      }
-      jobApi
-        .videoStatus(remoteId)
-        .then((res) => {
-          if (!res) return;
-          const status = res.status;
-          const done = status === 'done' || status === 'failed';
-          const pct = Math.max(0, Math.min(100, Number(res.progress) || 0));
-          const isProcessing = !done && (status === 'pending' || status === 'processing');
-          this.setData({
-            status,
-            statusLabel: JOB_STATUS_LABEL[status] || '',
-            progressText: res.progressText || '',
-            progressPct: pct,
-            processing: isProcessing,
-            pageTitle: done ? (status === 'failed' ? '处理失败' : '处理完成') : '处理中'
-          });
-          // 进度条平滑推进（产物就绪后直接推到 100）
-          this.easeProgress(done && status === 'done' ? 100 : pct);
-          if (done) {
-            this.stopPoll();
-            // 回填本地记录，离开本页后记录列表也能看到最终状态
-            const patch = { status, progress: pct };
-            if (status === 'done') {
-              patch.progress = 100;
-              patch.outFileID = res.url || '';
-              patch.thumbFileID = res.thumbUrl || '';
-            } else {
-              patch.error = res.error || '处理失败';
-            }
-            jobApi.update(this.jobId, patch).catch(() => {});
-            app.bumpJob();
-            // 明确的成败提示：先把进度条推到终点，再提示结果
-            this.easeProgress(status === 'failed' ? pct : 100, () => {
-              if (status === 'done') toast('处理完成，可以下载了', 'success');
-              else toast(res.error || '处理失败，请重试');
-            });
-            // 结果就绪后再刷新一次详情
-            setTimeout(() => this.loadJob(), 260);
-          }
-        })
-        .catch(() => {
-          /* 单次轮询失败忽略，下一轮继续 */
-        });
-    }, POLL_INTERVAL);
+    this.stopPoll();
   },
 
   stopPoll() {

@@ -1,6 +1,7 @@
 const app = getApp();
 const image = require('../../utils/image');
 const localdb = require('../../utils/localdb');
+const localVideo = require('../../utils/local-video');
 const jobApi = require('../../services/job');
 const { MODE, MODE_DESC } = require('../../utils/constants');
 const { toast, clamp, formatDuration, humanDuration } = require('../../utils/util');
@@ -56,7 +57,7 @@ Page({
     progress: 0,
     progressLabel: '',
     queueHint: '',
-    videoServiceEnabled: false
+    videoServiceEnabled: true
   },
 
   onLoad() {
@@ -74,6 +75,7 @@ Page({
     this._imgH = pending.height || 0;
 
     const duration = Math.max(1, Math.round(pending.duration || 0));
+    const supported = localVideo.isSupported();
 
     this.setData({
       src: pending.path,
@@ -88,26 +90,17 @@ Page({
       endText: formatDuration(duration),
       spanText: humanDuration(duration),
       tlMidText: '已选 ' + humanDuration(duration) + ' · 已暂停',
-      queueHint:
-        '视频需上传处理后端。仅处理选中区间，约需 ' +
-        Math.max(20, Math.round(duration * 0.8)) +
-        '—' +
-        Math.max(40, Math.round(duration * 1.6)) +
-        ' 秒。',
+      queueHint: supported
+        ? '全离线处理：不联网、不上传，约需 ' +
+          Math.max(10, Math.round(duration * 1.2)) +
+          '—' +
+          Math.max(25, Math.round(duration * 3)) +
+          ' 秒。'
+        : '',
       modeOptions: [],
-      // 默认按已开启处理，随后以服务端探测结果校正（避免误拦）
-      videoServiceEnabled: true
+      // 本地处理能力决定入口状态；机型不支持时提交按钮给出明确提示
+      videoServiceEnabled: supported
     });
-
-    // 真实探测服务可用性，不只看后台开关
-    jobApi
-      .videoService()
-      .then((res) => {
-        if (res) this.setData({ videoServiceEnabled: !!res.available });
-      })
-      .catch(() => {
-        // 探测失败保持开启，交给提交时的服务端校验兜底
-      });
   },
 
   onReady() {
@@ -639,21 +632,21 @@ Page({
     }
   },
 
-  /* ================= 提交 ================= */
+  /* ================= 提交（全离线处理） ================= */
 
   async submit() {
     if (this.data.submitting) return;
-    if (!this.data.videoServiceEnabled) {
-      return toast('视频服务暂时不可用，请稍后重试');
+    if (!localVideo.isSupported()) {
+      return toast('这台手机的微信版本较低，请升级微信后重试');
     }
     if (this.data.endSec - this.data.startSec < MIN_SPAN) {
       return toast('请选择至少 ' + MIN_SPAN + ' 秒的处理区间');
     }
 
     this.pauseVideo();
-    this.setData({ submitting: true, progress: 0, progressLabel: '上传视频' });
+    this.setData({ submitting: true, progress: 2, progressLabel: '准备处理' });
 
-    // 缩略图先落地到本机：视频结果回来之前，记录列表靠它显示封面
+    // 缩略图先落地到本机：记录列表靠它显示封面
     let thumbFileID = '';
     if (this.data.thumbSrc) {
       try {
@@ -663,7 +656,9 @@ Page({
       }
     }
 
-    // 先写一条 pending 记录：即使上传中途退出，记录页也能看到这条任务
+    const trimApplied = this.data.startSec > 0.25;
+
+    // 先写一条 pending 记录：处理期间退出小程序，记录页也能看到这条任务
     let rec = null;
     try {
       rec = await jobApi.create({
@@ -685,40 +680,55 @@ Page({
     }
 
     try {
-      // 上传视频 + 创建远程任务在同一个请求里完成（不再分两步）
-      const res = await jobApi.submitVideo(
-        {
-          src: this.data.src,
-          mode: this.data.mode,
-          region: this.data.region,
-          timeRange: { start: this.data.startSec, end: this.data.endSec },
-          duration: this.data.duration,
-          fileName: this.data.fileName
-        },
-        (p) => {
-          this.setData({
-            progress: Math.round(p * 0.9),
-            progressLabel: p < 100 ? '上传视频 ' + p + '%' : '服务端排队中'
-          });
+      // 全离线处理：解码 → 抹水印 → 录制 → 合并音轨，全程不联网
+      const result = await localVideo.processVideo({
+        src: this.data.src,
+        mode: this.data.mode,
+        region: this.data.region,
+        timeRange: { start: this.data.startSec, end: this.data.endSec },
+        onProgress: (pct, label) => {
+          this.setData({ progress: Math.min(96, pct), progressLabel: label || '处理中' });
         }
-      );
+      });
 
-      await jobApi.update(rec.id, { remoteId: res.jobId, status: 'pending', progress: 0 });
+      // 成品落盘到持久目录（tempFilePath 重启即失效）
+      this.setData({ progress: 97, progressLabel: '保存到本机' });
+      const outPath = localdb.persistFile(result.tempFilePath, 'output', 'mp4');
+      if (!outPath) throw new Error('保存成品失败，请检查本机存储空间');
 
-      this.setData({ progress: 100, progressLabel: '已进入队列' });
+      await jobApi.update(rec.id, {
+        status: 'done',
+        progress: 100,
+        outFileID: outPath,
+        width: result.width,
+        height: result.height,
+        duration: result.duration || this.data.duration
+      });
       app.bumpJob();
 
-      // 提交完成后直接进入「处理记录」，用户可在列表里看到排队/处理进度
+      this.setData({ progress: 100, progressLabel: '完成' });
+      if (result.audioDropped) {
+        // toast 无 duration 参数，长文案用 modal 提示更稳
+        wx.showModal({
+          title: '提示',
+          content: '已裁剪时段：输出为无声视频（音轨无法与裁剪区间对齐）。不裁剪时段即可保留声音。',
+          showCancel: false,
+          confirmColor: '#185FA5'
+        });
+      }
+
       app.globalData.pending = { jobId: rec.id, fileName: this.data.fileName };
       setTimeout(() => {
         wx.switchTab({ url: '/pages/records/index' });
-      }, 280);
+      }, 320);
     } catch (e) {
-      // 提交失败也要落状态，避免记录页永远停在「排队中」
-      jobApi.update(rec.id, { status: 'failed', error: e.message || '提交失败' }).catch(() => {});
+      // 失败也要落状态，避免记录页永远停在「处理中」
+      jobApi
+        .update(rec.id, { status: 'failed', error: (e && e.message) || '处理失败' })
+        .catch(() => {});
       app.bumpJob();
       this.setData({ submitting: false, progress: 0, progressLabel: '' });
-      toast(e.message || '提交失败，请重试');
+      toast((e && e.message) || '处理失败，请重试');
     }
   }
 });

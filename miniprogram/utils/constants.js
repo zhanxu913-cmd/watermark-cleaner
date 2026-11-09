@@ -1,32 +1,17 @@
 /**
  * 全局常量与配置
  *
- * 零后台架构：
- *   - 图片处理全部在小程序本地完成，不依赖任何服务
- *   - 只有「视频去水印」需要一台能跑 FFmpeg 的机器
+ * 零后端架构（图片 + 视频全离线）：
+ *   - 图片：Canvas 端内处理，不联网
+ *   - 视频：VideoDecoder 解码 + WebGL 抹水印 + MediaRecorder 录制
+ *           + MediaContainer 合并音轨（utils/local-video.js），不联网
+ *   - 无服务器、无数据库、无域名、零费用
  *
- * 部署前唯一要改的是 VIDEO_API_BASE_URL（见下方说明），
- * 其它常量都是业务配置，一般不用动。
+ * 没有任何需要部署前修改的地址，其它常量都是业务配置。
  */
 
-// ============================================================
-// 视频服务地址（图片功能不需要配置，留空也能正常用）
-// ============================================================
-//
-// ① 本地调试：先起 video-service-lite，再填电脑的局域网 IP
-//      const VIDEO_API_BASE_URL = 'http://192.168.31.74:3100';
-//    手机必须和电脑同一 WiFi，开发者工具需勾选「不校验合法域名」
-//
-// ② 云托管 / 服务器：填平台给的 https 地址
-//      const VIDEO_API_BASE_URL = 'https://xxxx.sh.run.tcloudbase.com';
-//
-const VIDEO_API_BASE_URL = 'http://192.168.31.74:3100';
-
-// 与服务端 .env 的 CLIENT_TOKEN 保持一致；两边都留空则不校验（仅建议本地调试时留空）
-const VIDEO_CLIENT_TOKEN = '';
-
-// 兼容旧引用：util.js 在把「相对路径」补全成完整地址时会用到
-const API_BASE_URL = VIDEO_API_BASE_URL;
+// 兼容旧引用：util.js 在把「相对路径」补全成完整地址时会用到（现已无远程地址）
+const API_BASE_URL = '';
 // ============================================================
 
 // 视频限制（原先是后台可配项，零后台后固化为本地常量）
@@ -77,8 +62,6 @@ const MODE_DESC = {
 const TOOL = { BRUSH: 'brush', RECT: 'rect', CROP: 'crop' };
 
 module.exports = {
-  VIDEO_API_BASE_URL,
-  VIDEO_CLIENT_TOKEN,
   API_BASE_URL,
   VIDEO_LIMITS,
   JOB_TYPE,

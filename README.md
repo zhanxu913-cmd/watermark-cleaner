@@ -1,48 +1,44 @@
-# 水印清理 · 零后台版微信小程序
+# 水印清理 · 全离线版微信小程序
 
-**图片去水印全部在手机本地完成，不需要服务器、不需要数据库、不需要域名备案。**
-视频去水印交给一个可选的极简 FFmpeg 服务 —— 不想要视频功能，就一行都不用配。
+**图片与视频去水印全部在手机本地完成：不需要服务器、不需要数据库、不需要域名备案、不需要电脑、零费用。**
 
 > ⚠️ 合规定位：本工具面向「清理自有素材上的水印」。小程序的「关于」与隐私政策已按此表述，请不要改成「去除他人作品水印」类文案。
 
 ---
 
-## 一、和上一版（MySQL 后台）的区别
+## 一、和上一版（电脑 / 云端处理）的区别
 
-| | 旧版 | 本版 |
-|---|---|---|
-| 图片处理 | 本地 Canvas 处理后上传成品 | **纯本地，零请求** |
-| 图片记录 | MySQL `wc_jobs` | 手机本地 `records.json` |
-| 登录 | wx.login → JWT | **无登录** |
-| 用户/配额/封禁 | 后台可配 | **已移除** |
-| 管理后台 | Web + 小程序内分包 | **已移除** |
-| 视频处理 | Node + MySQL + 队列 | 极简单文件服务（Express + FFmpeg，无数据库） |
-| 部署 | MySQL + 服务 + 备案域名 | 图片零部署；视频一个容器 |
+| | 旧版（MySQL 后台） | 极简服务版 | 本版（全离线） |
+|---|---|---|---|
+| 图片处理 | 上传到服务器 | 本地 | **本地，零请求** |
+| 视频处理 | Node + MySQL + 队列 | Express + FFmpeg 服务 | **本地：解码 → WebGL 抹水印 → 重编码** |
+| 需要电脑/服务器 | 需要 | 需要 | **不需要** |
+| 费用 | 服务器费 | 30-80 元/月 | **0 元** |
+| 域名备案 | 需要 | 不需要 | **不需要** |
 
-旧版代码完整保留在 Git 历史中（`eef111b` 及更早提交）。
+旧版代码完整保留在 Git 历史中（`eef111b` 及更早提交）；`video-service-lite/` 仍留在仓库里作为后备方案。
 
 ---
 
-## 二、架构
+## 二、架构（全程不联网）
 
 ```
-┌─────────────────────────────────────┐
-│  微信小程序                          │
-│                                     │
-│  图片：选图 → Canvas 处理 → 存本机   │  ← 全程不联网
-│                                     │
-│  视频：选区间 → 上传 ─┐              │
-└──────────────────────┼──────────────┘
-                       │ HTTPS
-              ┌────────▼──────────┐
-              │ video-service-lite │  ← 可选，不配也能用图片
-              │ Express + FFmpeg   │
-              │ 无数据库 / 无登录   │
-              └────────┬──────────┘
-                       │ 处理完立刻删源文件
-                       ▼
-                  产物 mp4（保留 24h）
+┌──────────────────────────────────────────────┐
+│  微信小程序（手机端，全部离线）                  │
+│                                              │
+│  图片：选图 → Canvas 处理 → 存本机             │
+│                                              │
+│  视频：wx.createVideoDecoder 逐帧解码          │
+│      → WebGL 着色器抹水印（模糊/马赛克/填充）   │
+│      → wx.createMediaRecorder 逐帧重编码       │
+│      → wx.createMediaContainer 合并原声导出    │
+│      → 存本机                                 │
+└──────────────────────────────────────────────┘
 ```
+
+- 视频链路实现：`miniprogram/utils/local-video.js`
+- 基础库要求：MediaRecorder / VideoDecoder ≥2.11.0，MediaContainer ≥2.9.0
+- 机型不支持时（微信版本过低）入口自动置灰并提示升级，图片功能不受影响
 
 ---
 
@@ -50,25 +46,18 @@
 
 ```
 watermark-cleaner/
-├── miniprogram/                    # 小程序（图片功能开箱即用）
-│   ├── utils/constants.js          #   ★ 唯一需要改的文件：VIDEO_API_BASE_URL
+├── miniprogram/                    # 小程序（开箱即用，零配置）
+│   ├── utils/local-video.js        #   ★ 全离线视频处理（解码/抹水印/重编码/合音轨）
 │   ├── utils/localdb.js            #   本地记录仓库（记录 + 缩略图 + 成品）
+│   ├── utils/constants.js          #   业务常量（无任何需要部署前修改的地址）
 │   ├── services/job.js             #   记录 CRUD（全部落本地）
-│   ├── services/video.js           #   视频服务客户端
 │   ├── pages/                      #   首页 / 图片编辑 / 视频编辑 / 结果 / 记录 / 我的
 │   └── packageCommon/              #   关于 / 隐私 / 使用须知
-├── video-service-lite/             # ★ 极简视频服务（可选）
-│   ├── server.js                   #   Express + 队列 + 定时清理
-│   ├── lib/graph.js                #   FFmpeg 滤镜图（fill/blur/mosaic/crop/delogo）
-│   ├── lib/ffmpeg.js               #   转码 / 探测 / 抽帧
-│   ├── Dockerfile                  #   node:20-alpine + ffmpeg
-│   └── .env.example
+├── video-service-lite/             # 后备方案（可选，历史版本的电脑端处理服务）
 ├── tools/
 │   ├── doctor.js                   #   环境自检
 │   ├── check-miniprogram.js        #   小程序静态自检（require / 页面 / 事件）
-│   ├── test-video.js               #   视频链路测试（29 项）
-│   ├── get-ffmpeg.js               #   下载内置 ffmpeg
-│   └── lan-ip.js                   #   打印局域网地址
+│   └── test-video.js               #   FFmpeg 滤镜链测试（后备方案用）
 └── project.config.json
 ```
 
@@ -76,93 +65,21 @@ watermark-cleaner/
 
 ## 四、快速开始
 
-### 4.1 只做图片（零配置）
-
 1. 微信开发者工具导入项目根目录
 2. 直接编译运行
 
-不需要服务器、不需要填任何地址。图片处理、记录、保存相册全部可用。
-
-### 4.2 加上视频去水印
-
-#### 本地跑（开发和真机调试）
-
-```bash
-cd video-service-lite
-npm install
-cp .env.example .env      # 可选，改端口/令牌/时长上限
-npm start
-```
-
-启动后终端会打印：
-
-```
-  极简视频去水印服务已启动
-  监听      http://0.0.0.0:3100
-  FFmpeg    .../tools/bin/ffmpeg.exe  (项目内置 tools/bin)
-```
-
-然后把地址填进 `miniprogram/utils/constants.js`：
-
-```js
-// 模拟器调试
-const VIDEO_API_BASE_URL = 'http://127.0.0.1:3100';
-
-// 真机调试：换成电脑的局域网 IP（先跑 node tools/lan-ip.js 查看）
-// 手机和电脑必须在同一个 WiFi，电脑防火墙放行 3100
-const VIDEO_API_BASE_URL = 'http://192.168.1.23:3100';
-```
-
-开发者工具「详情 → 本地设置」勾选 **不校验合法域名**。
-
-#### 部署成公网服务（Docker / 云托管）
-
-```bash
-cd video-service-lite
-docker build -t wc-video .
-docker run -d -p 3100:3100 -e CLIENT_TOKEN=你的令牌 wc-video
-```
-
-云托管（腾讯云 / 任何容器平台）：
-
-1. 新建服务，代码目录选 `video-service-lite`
-2. 端口填 **3100**（或让平台注入 `PORT`）
-3. 环境变量：`CLIENT_TOKEN=你的令牌`、`KEEP_HOURS=24`
-4. 部署后拿到 https 地址，填进 `VIDEO_API_BASE_URL`
-
-> 云托管不需要域名备案，平台会给一个默认 https 域名；自定义域名才需要备案。
+没有服务器、没有域名、没有任何需要填的地址。图片、视频、记录、保存相册全部可用。
+**视频处理必须真机**（模拟器不支持 MediaRecorder），且手机微信版本需较新。
 
 ---
 
-## 五、小程序端配置
-
-只有一处要改：`miniprogram/utils/constants.js`
-
-```js
-const VIDEO_API_BASE_URL = 'https://xxxx.sh.run.tcloudbase.com';
-const VIDEO_CLIENT_TOKEN = '与服务端 CLIENT_TOKEN 保持一致';
-```
-
-上线前在微信公众平台 → 开发管理 → 服务器域名，把视频服务域名同时加入：
-
-| 类型 | 是否必需 | 用途 |
-|---|---|---|
-| `uploadFile` 合法域名 | 视频必需 | 上传视频 |
-| `request` 合法域名 | 视频必需 | 轮询状态、探测服务 |
-
-图片功能不产生任何请求，**一个域名都不用配**。
-
----
-
-## 六、数据存在哪
+## 五、数据存在哪
 
 | 内容 | 位置 | 生命周期 |
 |---|---|---|
-| 图片成品 | 本机 `USER_DATA_PATH/wc/outputs/` | 删记录/清缓存/卸载即删 |
+| 图片/视频成品 | 本机 `USER_DATA_PATH/wc/outputs/` | 删记录/清缓存/卸载即删 |
 | 缩略图 | 本机 `USER_DATA_PATH/wc/thumbs/` | 同上 |
 | 处理记录 | 本机 `USER_DATA_PATH/wc/data/records.json` | 同上 |
-| 视频源文件 | 视频服务临时目录 | 处理完**立即删除** |
-| 视频结果 | 视频服务 `output/` | 默认 24 小时，到期自动删 |
 
 本机数据上限：**150MB 或 300 条记录**，先到者生效。
 超出时按时间从旧到新删除成品文件（保留记录与缩略图），旧记录点开会提示「文件已过期」。
@@ -171,73 +88,55 @@ const VIDEO_CLIENT_TOKEN = '与服务端 CLIENT_TOKEN 保持一致';
 
 ---
 
-## 七、视频服务接口
+## 六、视频离线链路的能力边界（如实告知）
 
-```
-POST /api/video/submit    multipart：file + mode/region/timeRange/duration/fileName
-GET  /api/video/status    ?id=xxx
-GET  /api/video/service   探测 FFmpeg 是否就绪
-GET  /files/:name         产物下载（mp4 / jpg）
-GET  /healthz             健康检查
-```
-
-`region` 为归一化坐标 `{x,y,w,h}`（0–1），语义是**水印所在的框**；
-`crop` 模式会裁掉该框、保留剩余面积最大的一侧。
-
-`mode` 支持：`fill` / `blur` / `mosaic` / `crop` / `delogo`。
-
-状态值：`pending` → `processing` → `done` / `failed`。
+| 项 | 说明 |
+|---|---|
+| 输出画质 | 最长边 720p、码率 3000kbps（平台录制能力上限），日常分享足够 |
+| 处理速度 | 按帧率实时推进，10 秒视频约 10-30 秒 |
+| 模式 | 模糊 / 马赛克 / 智能填充（边缘推算）/ 裁剪保留区域 |
+| 声音 | 全片处理保留原声；**裁剪时间段时输出无声**（音轨无法与裁剪区间对齐） |
+| 兼容性 | 仅 WebGL1 画布可录制；部分低端机型可能失败，失败时报错可重试 |
 
 ---
 
-## 八、常见问题
+## 七、常见问题
 
-**Q：视频为什么不能也做成纯本地？**
-小程序开放了 `wx.createVideoDecoder`（逐帧解码），但**没有开放视频编码器**，无法把处理后的帧重新封装成 mp4；`ffmpeg` 二进制约 140MB，也远超小程序包与云函数（20MB）限制。这是平台硬约束，不是实现选择。
+**Q：视频真的不用服务器了吗？**
+是。微信提供了 `wx.createMediaRecorder`（Canvas 逐帧录制导出视频，≥2.11.0）和 `wx.createMediaContainer`（轨道分离/合并导出，≥2.9.0），与 `wx.createVideoDecoder` 组合即可在端内完成「处理 + 重编码 + 保留音轨」全链路。
 
-**Q：不配视频服务会怎样？**
-首页的视频入口会提示「视频服务未配置」，图片功能完全不受影响。
-
-**Q：接口会不会被人盗用？**
-服务端 `CLIENT_TOKEN` 与小程序端 `VIDEO_CLIENT_TOKEN` 一致即可挡掉随意调用。要更严就得回到账号+配额体系（旧版方案）。
-
-**Q：能多人同时用吗？**
-可以，`CONCURRENCY` 默认 1（串行转码）。机器配置好可调到 2–4。
+**Q：会收费吗？**
+不会。以上均为免费 wx API，在本机运行，无任何按量计费项。
 
 **Q：审核会被拒吗？**
-去水印类工具审核偏严。建议：类目选「工具」，描述写「清理自有素材上的水印」，不要在名称/简介里出现「破解」「去他人水印」。隐私政策已写明不收集个人信息，可作辅助材料。
+去水印类工具审核偏严。建议：类目选「工具」，描述写「清理自有素材上的水印」，不要出现「破解」「去他人水印」。隐私政策已写明不收集信息、不上传数据，可作辅助材料。
 
-**Q：怎么换回有数据库的版本？**
-`git log` 找到 `eef111b`，`git checkout eef111b -- .` 即可恢复。旧版的部署说明在对应提交的 README 里。
+**Q：怎么换回电脑处理版本？**
+仓库里保留了 `video-service-lite/`（Express + FFmpeg 极简服务），`git log` 里的极简服务版提交（`d27af88` 附近）有完整部署说明；更早的 MySQL 版在 `eef111b`。
 
 ---
 
-## 九、自检与测试
+## 八、自检与测试
 
 ```bash
-node tools/doctor.js            # 环境：Node / FFmpeg / 依赖 / 服务 / 配置
+node tools/doctor.js                            # 环境 + 小程序静态完整性 + 零后端确认
 node tools/check-miniprogram.js ./miniprogram   # 静态：require / 页面 / 事件绑定
-node tools/test-video.js        # 视频链路：29 项断言
 ```
 
 `doctor.js` 输出示例：
 
 ```
   ✓ Node 版本   22.22.2
-  ✓ ffmpeg   tools/bin  .../tools/bin/ffmpeg.exe
-  ✓ 视频服务依赖   已安装
-  ✓ 小程序视频地址   http://192.168.31.74:3100
-  ✗ 视频服务运行中   未启动 —— cd video-service-lite && npm start
+  ✓ 小程序静态完整性   检查文件：js 20 个，wxml 13 个
+  ✓ 零后端配置确认   无远程地址，图片/视频全离线
 ```
 
 ---
 
-## 十、上线前检查
+## 九、上线前检查
 
-- [ ] `VIDEO_API_BASE_URL` 已改为 https 正式地址
-- [ ] 公众平台已添加 `uploadFile` / `request` 合法域名
-- [ ] 服务端 `CLIENT_TOKEN` 已设置且与小程序一致
-- [ ] 隐私政策中的「联系我们」方式真实可用
 - [ ] 真机跑一遍：图片处理 → 保存相册 → 记录 → 删除
-- [ ] 真机跑一遍：视频上传 → 进度 → 下载到相册
+- [ ] 真机跑一遍：视频框选 → 全片处理（验声音）→ 裁剪处理（验无声提示）→ 保存相册
+- [ ] 低版本微信验证：入口置灰提示正常
+- [ ] mp 后台配置《用户隐私保护指引》（声明相册写入权限）
 - [ ] 小程序类目、名称、简介不含侵权导向表述

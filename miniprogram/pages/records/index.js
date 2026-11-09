@@ -59,60 +59,9 @@ Page({
 
   /* ================= 处理中自动刷新 ================= */
 
-  // 列表里还有 pending / processing 的任务时，每 4 秒静默刷新一次
-  syncPoll(list) {
-    const arr = list || this.data.list || [];
-    const busy = arr.some((j) => j.status === 'pending' || j.status === 'processing');
-    if (busy) this.startPoll();
-    else this.stopPoll();
-  },
-
-  startPoll() {
-    if (this._pollTimer) return;
-    this._pollTimer = setInterval(() => this.pollOnce(), 3000);
-  },
-
-  /**
-   * 轮询远程视频任务，把进度 / 结果地址回填到本地记录。
-   * 图片记录不走这里（本地处理，创建即完成）。
-   */
-  async pollOnce() {
-    const busy = (this.data.list || []).filter(
-      (j) => (j.status === 'pending' || j.status === 'processing') && j.remoteId
-    );
-    if (!busy.length) {
-      this.stopPoll();
-      return;
-    }
-
-    let changed = false;
-    for (let i = 0; i < busy.length; i++) {
-      const j = busy[i];
-      try {
-        const r = await jobApi.videoStatus(j.remoteId);
-        const patch = {
-          status: r.status || j.status,
-          progress: Number(r.progress) || 0
-        };
-        if (r.status === 'done') {
-          patch.progress = 100;
-          patch.outFileID = r.url || j.outFileID || '';
-          patch.thumbFileID = r.thumbUrl || j.thumbFileID || '';
-        } else if (r.status === 'failed') {
-          patch.error = r.error || '处理失败';
-        }
-        jobApi.update(j.id, patch);
-        changed = true;
-      } catch (e) {
-        /* 单条查询失败不打断其它任务 */
-      }
-    }
-
-    if (changed) {
-      app.bumpJob();
-      this.reload();
-    }
-  },
+  // 全离线处理后，记录创建时即已完成或失败，无需轮询远程任务。
+  // 保留空实现以兼容页面里的既有调用点。
+  syncPoll() {},
 
   stopPoll() {
     if (this._pollTimer) {
@@ -183,8 +132,7 @@ Page({
       });
   },
 
-  // 本地路径可直接用于 <image> 与保存相册，不需要再换取临时链接。
-  // 视频结果是服务端 https 地址，下载时由 util.downloadFile 负责拉取。
+  // 本地路径可直接用于 <image> 与保存相册，图片视频均不再经过服务端。
   decorate(list) {
     return Promise.resolve(
       list.map((j) =>
