@@ -103,6 +103,10 @@
   background: rgba(15, 110, 86, 0.92);
 }
 
+.sbar-btn.disabled {
+  opacity: 0.45;
+}
+
 .stage-fallback {
   position: absolute;
   left: 0;

@@ -19,6 +19,7 @@
 
 const MIN_REC_DURATION = 5; // MediaRecorder duration 参数最小值（秒）
 const MAX_EDGE = 720; // 输出画面最长边上限（性能与码率的平衡点）
+const wmDetect = require('./wm-detect');
 
 /* ============================================================
    能力检测
@@ -388,7 +389,8 @@ async function processVideo(opts) {
 
   if (mode === 'crop') {
     // 裁剪模式：region 为保留区域，输出画面 = 该区域
-    const r = o.region && o.region.w > 0.02 && o.region.h > 0.02 ? o.region : null;
+    const keep = (o.regions && o.regions[0]) || o.region;
+    const r = keep && keep.w > 0.02 && keep.h > 0.02 ? keep : null;
     if (!r) throw new Error('裁剪模式需要先框选要保留的画面区域');
     if (vw && vh) {
       size = fitSize(r.w * vw, r.h * vh);
@@ -400,7 +402,10 @@ async function processVideo(opts) {
   } else {
     if (vw && vh) size = fitSize(vw, vh);
     else size = { w: 640, h: 360 };
-    if (o.region && o.region.w > 0.005 && o.region.h > 0.005) regions = [o.region];
+    // 多区域：regions 数组优先，兼容旧的单 region 字段
+    const valid = (r) => r && Number(r.w) > 0.005 && Number(r.h) > 0.005;
+    if (Array.isArray(o.regions)) regions = o.regions.filter(valid);
+    if (!regions.length && valid(o.region)) regions = [o.region];
   }
 
   // 3) 离屏 WebGL 画布 + 录制器
@@ -638,5 +643,15 @@ async function mergeAudio(silentVideo, srcVideo) {
 module.exports = {
   isSupported,
   isSimulator,
-  processVideo
+  processVideo,
+  /** 自动识别水印候选框（真机）；模拟器走 video-remote.detectRegions */
+  detectRegions: async function (src, timeRange) {
+    if (isSimulator()) {
+      const e = new Error('模拟器不支持端内识别，请改走电脑服务通道');
+      e.code = 'SIMULATOR';
+      throw e;
+    }
+    if (!wx.createVideoDecoder) throw new Error('当前微信版本不支持自动识别，请手动框选');
+    return wmDetect.detectWatermarks(src, timeRange);
+  }
 };

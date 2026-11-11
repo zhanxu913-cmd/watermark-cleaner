@@ -52,7 +52,11 @@
     <!-- 播放控制条 -->
     <view class="stage-bar">
       <view class="sbar-btn primary" bindtap="togglePlay">{{playing ? '暂停' : '播放'}}</view>
+      <view class="sbar-btn {{detecting ? 'disabled' : ''}}" bindtap="autoDetect">
+        {{detecting ? '识别中…' : '自动'}}
+      </view>
       <view class="sbar-btn" bindtap="toggleRegion">{{hasRegion ? '隐藏框' : '框选'}}</view>
+      <view class="sbar-btn" bindtap="deleteSelected">删框</view>
       <view class="sbar-btn" bindtap="toggleMuted">{{vMuted ? '取消静音' : '静音'}}</view>
       <view class="sbar-btn" bindtap="previewVideo">全屏</view>
     </view>
@@ -100,7 +104,7 @@
       <text class="mode-desc">智能去水印</text>
     </view>
     <view class="notice plain">
-      <view class="notice-tx">按水印周围的画面自动推算填充，无需选择，效果最好。</view>
+      <view class="notice-tx">支持一次框选最多 4 个水印（点「自动」可智能识别位置）。空白处拖动加框，点框选中后可拖动/缩放/删除，已选 {{regions.length}} 个。</view>
     </view>
   </view>
 
