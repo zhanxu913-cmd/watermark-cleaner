@@ -10,6 +10,7 @@ const POLL_INTERVAL = 3000;
 Page({
   data: {
     loading: true,
+    dbg: '',
     error: '',
     isVideo: false,
     srcUrl: '',
@@ -455,7 +456,14 @@ Page({
     this.setData({ quotaCount: quota.get() });
   },
 
+  /** 临时排查：把当前步骤同时打到控制台和屏幕上 */
+  mark(msg) {
+    console.log('[保存]', msg);
+    this.setData({ dbg: msg });
+  },
+
   async save() {
+    this.mark('① 点击已收到');
     if (this.data.saving) return toast('正在保存，请稍候');
     if (!this.data.canSave) {
       return toast(this.data.outUrl ? '结果还没准备好，请稍候' : '暂无可保存的结果文件');
@@ -469,22 +477,29 @@ Page({
     const devtools = isDevtools();
 
     try {
-      if (!(await this.ensureVideoQuota())) return;
+      const quotaOk = await this.ensureVideoQuota();
+      this.mark('② 额度检查: ' + (quotaOk ? '通过' : '未通过'));
+      if (!quotaOk) return;
 
       if (!devtools) {
         this.setData({ progressText: '检查相册权限…' });
         const authed = await ensureAlbumAuth();
+        this.mark('③ 相册权限: ' + (authed ? '已授权' : '被拒绝'));
         if (!authed) return toast('未获得相册权限，无法保存');
+      } else {
+        this.mark('③ 电脑模式，跳过相册权限');
       }
 
       this.pauseAll();
       this.setData({ progressText: '准备文件…' });
 
       const filePath = await this.grabFile();
+      this.mark('④ 取文件成功: ' + String(filePath || '').slice(-40));
       const type = this.data.isVideo ? 'video' : 'image';
       const name = defaultFileName(type, this.data.outUrl, this.data.fileName);
       const named = await renameLocalFile(filePath, name);
       this.setData({ savedName: name, progressText: devtools ? '保存到电脑…' : '保存到相册…' });
+      this.mark('⑤ 重命名完成: ' + name);
 
       let where = '相册';
       if (devtools) {
@@ -501,12 +516,14 @@ Page({
       } else {
         await saveImage(named);
       }
+      this.mark('⑥ 写入完成: ' + where);
       toast('已保存到' + where + '：' + name, 'success');
       this.consumeVideoQuota();
       if (this.jobId) {
         jobApi.markSaved(this.jobId).catch(() => {});
       }
     } catch (e) {
+      this.mark('✗ 失败: ' + ((e && e.message) || e));
       console.error('[保存] 失败:', e);
       toast((e && e.message) || '保存失败，请重试');
     } finally {

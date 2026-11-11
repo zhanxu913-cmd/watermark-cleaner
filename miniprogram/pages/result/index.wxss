@@ -10,7 +10,9 @@
 
 /* 为固定底栏留出滚动余量 */
 .page-bottom-hold {
-  height: calc(400rpx + env(safe-area-inset-bottom));
+  /* 留足空间：底部固定操作栏 + Banner 广告层不能压到按钮上
+     （<ad> 是原生组件，一旦与固定栏重叠会吞掉点击，表现为「点了没反应」） */
+  height: calc(640rpx + env(safe-area-inset-bottom));
 }
 
 /* 状态横幅 */

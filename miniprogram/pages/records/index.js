@@ -21,6 +21,7 @@ const EMPTY_TEXT = {
 Page({
   data: {
     keyword: '',
+    dbg: '',
     filter: 'all',
     filters: FILTERS.map((f) => Object.assign({}, f, { active: f.key === 'all' })),
 
@@ -273,12 +274,19 @@ Page({
   },
 
   // 单条下载：点卡片右下角「下载」（视频存相册，图片存相册）
+  /** 临时排查：把当前步骤同时打到控制台和屏幕上 */
+  mark(msg) {
+    console.log('[下载]', msg);
+    this.setData({ dbg: msg });
+  },
+
   async onCardDownload(e) {
-    console.log('[下载] 记录页点击已触发, job=', e && e.detail && e.detail.job && e.detail.job.id);
+    this.mark('① 点击已收到');
     try {
       await this._doCardDownload(e);
     } catch (err) {
       // 兜底：任何异常都要给用户可见提示，绝不静默
+      this.mark('✗ 异常: ' + ((err && err.message) || err));
       console.error('[下载] 异常:', err);
       toast((err && err.message) || '下载失败，请重试');
     }
@@ -288,12 +296,12 @@ Page({
     const job = e.detail && e.detail.job;
     if (!job) return toast('记录数据异常，请返回重新进入');
     if (job.status !== 'done') return toast('该记录还没有可下载的结果');
+    this.mark('② 记录: ' + job.type + ' / ' + job.status);
 
     // 视频下载走额度闸门：图片免费直接放行
     if (job.type === 'video') {
-      console.log('[下载] 视频, 当前额度=', quota.get());
       const unlocked = await rewardAd.ensureQuota();
-      console.log('[下载] 额度闸门结果 =', unlocked);
+      this.mark('③ 额度闸门: ' + (unlocked ? '通过' : '未通过'));
       if (!unlocked) return;
     }
 
@@ -301,7 +309,10 @@ Page({
     const devtools = isDevtools();
     if (!devtools) {
       const authed = await ensureAlbumAuth();
+      this.mark('④ 相册权限: ' + (authed ? '已授权' : '被拒绝'));
       if (!authed) return toast('未获得相册权限，无法保存');
+    } else {
+      this.mark('④ 电脑模式，跳过相册权限');
     }
 
     // 下载前先算好默认文件名（时间 + 类型），并落到本地文件系统
@@ -313,6 +324,7 @@ Page({
       const url = job.outUrl || job.outFileID;
       if (!url) throw new Error('结果文件已过期');
       const path = await downloadFile(url);
+      this.mark('⑤ 下载完成: ' + String(path || '').slice(-40));
       const named = await renameLocalFile(path, name);
       let where = '相册';
       if (devtools) {
@@ -329,9 +341,11 @@ Page({
         await saveImage(named);
       }
       if (job.type === 'video') quota.consume(1); // 视频保存成功才扣 1 条
+      this.mark('⑥ 写入完成: ' + where);
       wx.hideLoading();
       toast('已保存到' + where + '：' + name + '（' + fmt + '）', 'success');
     } catch (err) {
+      this.mark('✗ 失败: ' + ((err && err.message) || err));
       wx.hideLoading();
       toast((err && err.message) || '下载失败，请重试');
     }

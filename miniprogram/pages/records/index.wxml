@@ -5,6 +5,7 @@
       <text wx:else bindtap="toggleSelectMode">完成</text>
     </view>
   </nav-bar>
+  <view wx:if="{{dbg}}" class="dbg-line">{{dbg}}</view>
 
   <!-- 搜索 -->
   <view class="search-wrap">

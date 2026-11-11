@@ -538,6 +538,22 @@ textarea {
   border-top: 1rpx solid var(--c-line);
 }
 
+/* 临时排查用：屏幕上的步骤提示（发布前删除） */
+.dbg-line {
+  position: fixed;
+  left: 16rpx;
+  top: 96rpx;
+  z-index: 9999;
+  max-width: 72%;
+  padding: 8rpx 14rpx;
+  border-radius: 8rpx;
+  background: rgba(0, 0, 0, 0.72);
+  color: #ffffff;
+  font-size: 20rpx;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
 /* ============ 加载态 ============ */
 
 .skeleton {

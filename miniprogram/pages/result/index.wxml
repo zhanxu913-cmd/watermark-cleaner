@@ -1,5 +1,6 @@
 <view class="page">
   <nav-bar showBack title="{{pageTitle}}" />
+  <view wx:if="{{dbg}}" class="dbg-line">{{dbg}}</view>
 
   <!-- 加载中 -->
   <view wx:if="{{loading}}" class="page-body">
