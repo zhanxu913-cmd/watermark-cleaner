@@ -578,3 +578,18 @@ textarea {
   font-size: 24rpx;
   color: var(--c-text-3);
 }
+
+/* ============ 内容安全提示（图片 / 视频页，紧跟素材下方） ============ */
+.sec-tip-wrap {
+  padding: 20rpx 32rpx 0;
+}
+
+.sec-tip-wrap .notice {
+  padding: 20rpx 24rpx;
+}
+
+.sec-tip-tx {
+  font-size: 25rpx;
+  font-weight: 500;
+  line-height: 1.55;
+}

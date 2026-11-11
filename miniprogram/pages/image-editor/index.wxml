@@ -18,6 +18,14 @@
     <view wx:if="{{!layoutReady}}" class="stage-loading">正在准备画布…</view>
   </view>
 
+  <!-- 内容安全提示：紧跟图片下方，显著提示（审核要求） -->
+  <view class="sec-tip-wrap">
+    <view class="notice warn">
+      <view class="notice-bar"></view>
+      <view class="notice-tx sec-tip-tx">请确保素材与对外发布的内容均不含违法违规信息。</view>
+    </view>
+  </view>
+
   <!-- 工具栏 -->
   <view class="tools">
     <view class="tool-row">
@@ -77,9 +85,6 @@
     </view>
 
   </view>
-
-  <!-- 内容安全提示（审核要求：明确提示不得含违规信息） -->
-  <view class="sec-tip">请确保素材与对外发布的内容均不含违法违规信息。</view>
 
   <!-- 底部 Banner 广告（广告位未配置时不渲染） -->
   <view wx:if="{{bannerImageId}}" class="ad-wrap">

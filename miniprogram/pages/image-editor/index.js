@@ -51,7 +51,17 @@ Page({
   },
 
   /** Banner 广告加载成功（官方事件） */
-  onAdLoad() {},
+  /**
+   * 广告填充后页面高度会变（画布区弹性收缩），需按新尺寸重挂画布，
+   * 否则涂抹/框选坐标会与画面错位
+   */
+  onAdLoad() {
+    setTimeout(() => {
+      this.measureAndLayout()
+        .then(() => this.redraw())
+        .catch(() => {});
+    }, 60);
+  },
 
   /** Banner 广告被用户关闭（官方事件） */
   onAdClose() {},

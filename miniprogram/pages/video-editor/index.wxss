@@ -10,14 +10,14 @@
 .stage {
   position: relative;
   margin: 0 32rpx;
-  /* 高度由 JS 按视频宽高比算出（computeStageHeight），占首屏大部分；
-     这里只给兜底值，避免首帧抖动 */
-  height: 40vh;
+  /* 高度弹性：基准 44vh，空间富余时自动长高（占用首屏大部分），
+     空间不足时自动收缩，保证安全提示、广告与「开始处理」始终同屏 */
+  flex: 1 1 auto;
+  height: 44vh;
   min-height: 300rpx;
   border-radius: 24rpx;
   overflow: hidden;
   background: #e5e3dc;
-  flex-shrink: 0;
 }
 
 .stage-img {
@@ -130,7 +130,7 @@
 
 /* 面板 */
 .panel {
-  padding: 16rpx 32rpx 0;
+  padding: 24rpx 32rpx 0;
 }
 
 .hl {
@@ -339,9 +339,6 @@
 /* ============ 底部 Banner 广告位 ============ */
 
 .ad-slot {
-  /* 把「广告 + 提示 + 按钮」整组沉到屏幕底部：
-     预览区按视频比例占住上方，中间剩余空间留在两者之间 */
-  margin-top: auto;
   padding-bottom: 8rpx;
 }
 
@@ -366,25 +363,4 @@
   font-size: 22rpx;
   color: #b4b2a9;
   margin-top: 8rpx;
-}
-
-/* 「开始处理」贴底：预览区变矮后，用 auto 外边距吸收剩余高度，
-   避免按钮悬在页面中间、下方留一大块空白 */
-.editor .bottom-bar {
-  margin-top: 0;
-}
-
-/* ============ 内容安全提示 ============ */
-
-.sec-tip {
-  padding: 12rpx 40rpx 8rpx;
-  font-size: 22rpx;
-  line-height: 1.6;
-  color: #8a8a80;
-  text-align: center;
-}
-
-/* 没有广告时由提示行把底部操作区一起沉底（有广告时由 .ad-slot 负责） */
-.sec-tip-auto {
-  margin-top: auto;
 }
