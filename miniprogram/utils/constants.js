@@ -90,7 +90,7 @@ const TOOL = { BRUSH: 'brush', RECT: 'rect', CROP: 'crop' };
 //   留空则该位不渲染，不影响其它功能。
 // ============================================================
 const AD_UNITS = {
-  REWARDED: 'adunit-db3a55f2d766cf28', // 激励视频：视频下载额度解锁
+  REWARDED: 'adunit-263b6ae765f8393e', // 激励视频：视频下载额度解锁
   BANNER_HOME: 'adunit-cf46acd2d060f865', // ← 首页底部 Banner 广告位
   BANNER_IMAGE: 'adunit-68089657cc56cc21', // ← 图片页底部 Banner 广告位
   BANNER_RESULT: 'adunit-cf46acd2d060f865' // ← 结果页底部 Banner（暂复用首页 ID；后台新建独立位后替换即可分开统计）
@@ -130,7 +130,7 @@ const QUOTA_ENABLED = true;
 
 // 构建标记：每次发版前更新一次。关于页底部与启动日志会打印，
 // 用来确认手机/电脑跑的是不是最新上传的代码（排查「改了没生效」最直接的办法）。
-const BUILD_TAG = '2026-11-11 17:18';
+const BUILD_TAG = '2026-11-11 17:14';
 
 module.exports = {
   API_BASE_URL,
