@@ -394,24 +394,41 @@ async function ensureQuota() {
     return false;
   }
 
+  // 返回值：true = 用户同意看广告；false = 用户主动拒绝；null = 弹窗本身调用失败
   const go = await new Promise((resolve) => {
+    let settled = false;
+    const done = (v) => {
+      if (settled) return;
+      settled = true;
+      resolve(v);
+    };
+    // 兜底：万一下回又踩到参数限制导致既无 success 也无 fail，不能让用户干等
+    setTimeout(() => done(null), 10000);
     wx.showModal({
       title: '看广告解锁下载',
       content:
         '图片处理完全免费；下载视频每条需要 1 次额度。看完一段短视频广告，即可解锁 ' +
         QUOTA_PER_AD +
         ' 次下载。',
-      confirmText: '看广告解锁',
+      confirmText: '去解锁', // 注意：confirmText 最多 4 个字符，超限 showModal 直接 fail、弹窗不出现
       cancelText: '暂不',
       confirmColor: '#185FA5',
-      success: (r) => resolve(!!(r && r.confirm)),
-      fail: () => resolve(false)
+      success: (r) => done(!!(r && r.confirm)),
+      fail: (err) => {
+        logAd('确认弹窗调用失败', (err && err.errMsg) || '未知原因');
+        done(null);
+      }
     });
   });
-  if (!go) {
+
+  if (go === false) {
     logAd('用户点了暂不');
     _gateError = '用户取消';
     return false;
+  }
+  if (go === null) {
+    // 弹窗没能弹出来是程序问题，不该惩罚用户：直接拉起广告
+    logAd('弹窗未弹出，直接拉起广告');
   }
 
   try {
