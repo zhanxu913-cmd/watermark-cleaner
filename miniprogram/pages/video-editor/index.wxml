@@ -66,10 +66,7 @@
     </view>
   </view>
 
-  <!-- 内容安全提示（审核要求：明确提示不得含违规信息） -->
-  <view class="sec-tip">请确保素材与对外发布的内容均不含违法违规信息。</view>
-
-  <!-- Banner 广告位：沉到页面底部、紧贴操作栏上方，与预览区和按钮都不重叠 -->
+  <!-- Banner 广告位：紧跟预览区，进页面就能看到（不与 video 重叠，避免原生组件遮挡） -->
   <view wx:if="{{bannerVideoId}}" class="panel ad-slot">
     <ad unit-id="{{bannerVideoId}}" ad-intervals="60" binderror="onBannerError" />
   </view>
@@ -79,6 +76,9 @@
       <view class="v-ad-ph-sub">开发者工具内不渲染，真机可见</view>
     </view>
   </view>
+
+  <!-- 内容安全提示（审核要求：明确提示不得含违规信息） -->
+  <view class="sec-tip">请确保素材与对外发布的内容均不含违法违规信息。</view>
 
   <view class="bottom-bar">
     <view
