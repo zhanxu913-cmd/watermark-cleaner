@@ -1,7 +1,5 @@
 const app = getApp();
 const jobApi = require('../../services/job');
-const rewardAd = require('../../services/reward-ad');
-const quota = require('../../utils/quota');
 const { toast, confirm } = require('../../utils/util');
 
 const VERSION = '2.0.0';
@@ -11,22 +9,11 @@ Page({
     metrics: [],
     recordText: '—',
     version: VERSION,
-    cacheText: '—',
-    quotaCount: 0
+    cacheText: '—'
   },
 
   onShow() {
     this.loadStats();
-    this.setData({ quotaCount: quota.get() });
-  },
-
-  /** 点额度行：有额度 → 说明规则；没额度 → 直接走看广告解锁 */
-  async onQuotaTap() {
-    if (this.data.quotaCount > 0) {
-      return toast('图片免费；每下载 1 段视频扣 1 条');
-    }
-    const ok = await rewardAd.ensureQuota();
-    if (ok) this.setData({ quotaCount: quota.get() });
   },
 
   onShareAppMessage() {

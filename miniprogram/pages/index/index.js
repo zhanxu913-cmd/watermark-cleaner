@@ -3,8 +3,7 @@ const jobApi = require('../../services/job');
 const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
 const rewardAd = require('../../services/reward-ad');
-const quota = require('../../utils/quota');
-const { VIDEO_LIMITS, QUOTA_PER_AD, AD_UNITS } = require('../../utils/constants');
+const { VIDEO_LIMITS, AD_UNITS } = require('../../utils/constants');
 const { toast } = require('../../utils/util');
 
 const IMAGE_MAX_SIZE = 20 * 1024 * 1024;
@@ -16,7 +15,6 @@ Page({
     videoServiceEnabled: true,
     videoHint: '框选区域 + 时间区间',
     storageText: '',
-    quotaCount: 0,
     bannerHomeId: AD_UNITS.BANNER_HOME || ''
   },
 
@@ -29,16 +27,6 @@ Page({
     if (this._jobVersion !== app.globalData.version.job) this.loadRecent();
     this.consumeAutoPick();
     this.checkVideoSupport();
-    this.setData({ quotaCount: quota.get() });
-  },
-
-  /** 点额度行：有额度 → 说明规则；没额度 → 直接走看广告解锁 */
-  async onQuotaTap() {
-    if (this.data.quotaCount > 0) {
-      return toast('图片免费；每下载 1 段视频扣 1 条，看广告 + ' + QUOTA_PER_AD + ' 次');
-    }
-    const ok = await rewardAd.ensureQuota();
-    if (ok) this.setData({ quotaCount: quota.get() });
   },
 
   /** Banner 广告加载失败：静默，不影响页面功能 */
