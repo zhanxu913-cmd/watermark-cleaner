@@ -66,18 +66,7 @@
     </view>
   </view>
 
-  <!-- 处理方式 -->
-  <view class="panel">
-    <view class="field-label">
-      <text>处理方式</text>
-      <text class="mode-desc">智能去水印</text>
-    </view>
-    <view class="notice plain">
-      <view class="notice-tx">支持一次框选最多 4 个水印：空白处拖动加框，点框选中后可拖动/缩放/删除，已选 {{regions.length}} 个。</view>
-    </view>
-  </view>
-
-  <!-- 底部 Banner 广告位 -->
+  <!-- Banner 广告位：紧跟预览区，进页面就能看到（不与 video 重叠，避免原生组件遮挡） -->
   <view wx:if="{{bannerVideoId}}" class="panel ad-slot">
     <ad unit-id="{{bannerVideoId}}" ad-intervals="60" binderror="onBannerError" />
   </view>
@@ -85,6 +74,13 @@
     <view class="v-ad-ph">
       <view class="v-ad-ph-tx">Banner 广告位</view>
       <view class="v-ad-ph-sub">开发者工具内不渲染，真机可见</view>
+    </view>
+  </view>
+
+  <!-- 框选操作提示（处理方式固定为智能去水印，不再单列一行） -->
+  <view class="panel panel-tip">
+    <view class="notice plain">
+      <view class="notice-tx">空白处拖动加框，最多 4 个；点框可拖动/缩放/删除。已选 {{regions.length}} 个。</view>
     </view>
   </view>
 

@@ -10,8 +10,12 @@
 .stage {
   position: relative;
   margin: 0 32rpx;
-  height: 44vh;
-  min-height: 380rpx;
+  /* 预览区不再按屏幕比例撑满：留出高度给 Banner 与操作区，
+     进页面即可看到广告与「开始处理」按钮，无需滚动（本页也不可滚动） */
+  height: 30vh;
+  min-height: 300rpx;
+  /* 再给一个大屏上限：不同机型上预览区高度保持一致，Banner 与按钮不被挤出首屏 */
+  max-height: 380rpx;
   border-radius: 24rpx;
   overflow: hidden;
   background: #e5e3dc;
@@ -128,7 +132,12 @@
 
 /* 面板 */
 .panel {
-  padding: 24rpx 32rpx 0;
+  padding: 16rpx 32rpx 0;
+}
+
+/* 操作提示：与广告位之间收紧间距 */
+.panel-tip {
+  padding-top: 12rpx;
 }
 
 .hl {
@@ -361,4 +370,10 @@
   font-size: 22rpx;
   color: #b4b2a9;
   margin-top: 8rpx;
+}
+
+/* 「开始处理」贴底：预览区变矮后，用 auto 外边距吸收剩余高度，
+   避免按钮悬在页面中间、下方留一大块空白 */
+.editor .bottom-bar {
+  margin-top: auto;
 }
