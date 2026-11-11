@@ -2,9 +2,9 @@
   <nav-bar title="全能AI去水印" />
 
   <view class="page-body">
-    <!-- 去水印额度 -->
+    <!-- 去水印额度（仅约束视频下载；图片免费） -->
     <view class="quota-line" bindtap="onQuotaTap" hover-class="quota-line-hover">
-      <view class="flex-1">去水印额度：{{quotaCount}} 条</view>
+      <view class="flex-1">视频下载额度：{{quotaCount}} 条 · 图片免费</view>
       <view wx:if="{{quotaCount <= 0}}" class="quota-cta">看广告 +3 ›</view>
     </view>
 
@@ -106,6 +106,12 @@
     </view>
 
     <view class="foot-note" bindtap="goAbout">使用说明与隐私政策 ›</view>
+
+    <!-- 首页底部 Banner 广告（广告位未配置时不渲染） -->
+    <view wx:if="{{bannerHomeId}}" class="ad-wrap">
+      <ad unit-id="{{bannerHomeId}}" ad-intervals="60" binderror="onAdError" />
+    </view>
+
     <view class="page-bottom-hold"></view>
   </view>
 </view>

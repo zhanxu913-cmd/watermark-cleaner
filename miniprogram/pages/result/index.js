@@ -1,5 +1,7 @@
 const app = getApp();
 const jobApi = require('../../services/job');
+const rewardAd = require('../../services/reward-ad');
+const quota = require('../../utils/quota');
 const { MODE_LABEL, JOB_STATUS_LABEL } = require('../../utils/constants');
 const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt } = require('../../utils/util');
 
@@ -22,6 +24,7 @@ Page({
     job: null,
     saving: false,
     canSave: false,
+    quotaCount: 0,
     downloading: false,
     progressText: '',
     progressPctDisp: 0,
@@ -140,6 +143,7 @@ Page({
           loading: false,
           job,
           isVideo,
+          quotaCount: isVideo ? quota.get() : 0,
           fileName: job.fileName || '处理结果',
           modeLabel: MODE_LABEL[job.mode] || '',
           sizeText: job.outSize ? formatSize(job.outSize) : job.size ? formatSize(job.size) : '—',
@@ -427,11 +431,31 @@ Page({
 
   /* ================= 保存 ================= */
 
+  /**
+   * 视频下载额度闸门：图片免费直接放行；
+   * 视频需要额度，不足时弹窗引导看激励视频解锁。
+   * @returns {Promise<boolean>}
+   */
+  async ensureVideoQuota() {
+    if (!this.data.isVideo) return true;
+    const ok = await rewardAd.ensureQuota();
+    if (ok) this.setData({ quotaCount: quota.get() });
+    return ok;
+  },
+
+  /** 下载成功后扣 1 条额度（视频专属；图片免费不扣） */
+  consumeVideoQuota() {
+    if (!this.data.isVideo) return;
+    quota.consume(1);
+    this.setData({ quotaCount: quota.get() });
+  },
+
   async save() {
     if (this.data.saving) return;
     if (!this.data.canSave) {
       return toast(this.data.outUrl ? '结果还没准备好，请稍候' : '暂无可保存的结果文件');
     }
+    if (!(await this.ensureVideoQuota())) return;
 
     const authed = await ensureAlbumAuth();
     if (!authed) return toast('未获得相册权限，无法保存');
@@ -450,6 +474,7 @@ Page({
         await saveImage(named);
       }
       toast('已保存 ' + name, 'success');
+      this.consumeVideoQuota();
       if (this.jobId) {
         jobApi.markSaved(this.jobId).catch(() => {});
       }
@@ -475,6 +500,7 @@ Page({
     if (!this.data.canSave) {
       return toast(this.data.outUrl ? '结果还没准备好，请稍候' : '暂无可下载的结果文件');
     }
+    if (!(await this.ensureVideoQuota())) return;
     this.pauseAll();
     // 视频最终要写相册，先拿权限再开始下载，避免白下一场
     if (this.data.isVideo) {
@@ -499,6 +525,7 @@ Page({
         // 视频：openDocument 不支持 mp4，直接保存到系统相册（用户可真正拿到文件）
         await saveVideo(named);
         this.setData({ savedPath: named });
+        this.consumeVideoQuota();
         if (this.jobId) jobApi.markSaved(this.jobId).catch(() => {});
         toast('已保存 ' + name + '（' + fmt + '）', 'success');
       } else {
@@ -524,6 +551,7 @@ Page({
     if (!this.data.canSave) {
       return toast(this.data.outUrl ? '结果还没准备好，请稍候' : '暂无可导出的结果文件');
     }
+    if (!(await this.ensureVideoQuota())) return;
     this.pauseAll();
     this.setData({ exporting: true, progressText: '准备导出…' });
     try {
@@ -552,6 +580,7 @@ Page({
           }
         });
       });
+      this.consumeVideoQuota();
     } catch (e) {
       if ((e && e.message) !== '已取消') toast(e.message || '导出失败');
     } finally {

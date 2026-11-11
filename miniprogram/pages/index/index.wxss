@@ -238,3 +238,9 @@
   color: #b4b2a9;
   padding: 56rpx 0 20rpx;
 }
+
+/* 首页底部 Banner 广告 */
+.ad-wrap {
+  margin-top: 12rpx;
+  min-height: 10rpx;
+}

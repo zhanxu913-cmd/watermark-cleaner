@@ -93,6 +93,11 @@
     </view>
   </view>
 
+  <!-- 底部 Banner 广告（广告位未配置时不渲染） -->
+  <view wx:if="{{bannerImageId}}" class="ad-wrap">
+    <ad unit-id="{{bannerImageId}}" ad-intervals="60" binderror="onAdError" />
+  </view>
+
   <view class="bottom-bar">
     <view
       class="btn-primary {{hasSelection && !processing ? '' : 'disabled'}}"

@@ -174,3 +174,8 @@
   width: 300px;
   height: 300px;
 }
+
+/* 底部 Banner 广告 */
+.ad-wrap {
+  padding: 8rpx 24rpx 0;
+}

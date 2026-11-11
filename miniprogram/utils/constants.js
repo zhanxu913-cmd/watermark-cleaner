@@ -75,16 +75,22 @@ const MODE_DESC = {
 const TOOL = { BRUSH: 'brush', RECT: 'rect', CROP: 'crop' };
 
 // ============================================================
-// 广告解锁额度（激励视频）
-//   规则：新用户送 QUOTA_FREE 条；每处理 1 张图 / 1 段视频消耗 1 条；
-//         额度用完 → 观看激励视频 → 解锁 QUOTA_PER_AD 条。
-//   上线前必做：mp.weixin.qq.com → 流量主 → 创建「激励视频」广告位
-//   → 把广告位 ID 填入 AD_UNIT_ID。
-//   未配置时：开发者工具模拟器直接解锁（方便测试）；真机会提示未配置。
+// 广告位配置（共 3 个）
+//   规则：图片处理完全免费；视频下载需要额度（新用户送 QUOTA_FREE 条，
+//         每下载 1 段视频扣 1 条；额度用完看激励视频解锁 QUOTA_PER_AD 条）。
+//   上线前必做：mp.weixin.qq.com → 流量主 → 广告位管理
+//   → 创建 1 个「激励视频」+ 2 个「Banner 广告」广告位
+//   → 把各自的 adunit-xxxx 填入对应字段。
+//   未配置时：激励视频在模拟器直接解锁（方便测试），真机提示未配置；
+//             Banner 广告位为空时不渲染。
 // ============================================================
-const AD_UNIT_ID = '';
-const QUOTA_FREE = 3; // 新用户免费额度
-const QUOTA_PER_AD = 3; // 每次完整看完广告解锁条数
+const AD_UNITS = {
+  REWARDED: '', // 激励视频：视频下载额度解锁
+  BANNER_HOME: '', // Banner：首页底部
+  BANNER_IMAGE: '' // Banner：图片编辑页底部
+};
+const QUOTA_FREE = 3; // 新用户免费视频下载额度
+const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
 
 module.exports = {
   API_BASE_URL,
@@ -98,7 +104,7 @@ module.exports = {
   MODE_LABEL,
   MODE_DESC,
   TOOL,
-  AD_UNIT_ID,
+  AD_UNITS,
   QUOTA_FREE,
   QUOTA_PER_AD
 };

@@ -1,18 +1,19 @@
 /**
  * 激励视频广告 + 额度闸门
  *
- * 上线前必须配置 utils/constants.js 的 AD_UNIT_ID：
+ * 额度只约束「视频下载」：每下载 1 段视频扣 1 条；图片处理完全免费。
+ * 上线前必须配置 utils/constants.js 的 AD_UNITS.REWARDED：
  *   mp.weixin.qq.com → 流量主（累计 1000 独立访客后可开通）→ 广告位管理
- *   → 新建「激励视频」广告位 → 把 adunit-xxxx 填入 AD_UNIT_ID。
+ *   → 新建「激励视频」广告位 → 把 adunit-xxxx 填入 AD_UNITS.REWARDED。
  *
- * 未配置 AD_UNIT_ID 时的行为：
+ * 未配置时的行为：
  *   - 开发者工具模拟器：直接发放额度（方便开发测试完整流程）
  *   - 真机：明确提示「广告位未配置」，不发放
  */
 
 'use strict';
 
-const { AD_UNIT_ID, QUOTA_PER_AD } = require('../utils/constants');
+const { AD_UNITS, QUOTA_PER_AD } = require('../utils/constants');
 const quota = require('../utils/quota');
 const { toast } = require('../utils/util');
 
@@ -20,7 +21,7 @@ let _ad = null; // RewardedVideoAd 全局单例
 let _adError = ''; // 最近一次广告加载错误（用于提示）
 
 function isConfigured() {
-  return !!AD_UNIT_ID;
+  return !!AD_UNITS.REWARDED;
 }
 
 /**
@@ -35,13 +36,13 @@ function showRewardedAd() {
     if (!isConfigured()) {
       return reject(
         new Error(
-          '广告位未配置：请先在 mp 后台开通流量主并创建激励视频广告位，再把 ID 填入 utils/constants.js 的 AD_UNIT_ID'
+          '广告位未配置：请先在 mp 后台开通流量主并创建激励视频广告位，再把 ID 填入 utils/constants.js 的 AD_UNITS.REWARDED'
         )
       );
     }
 
     if (!_ad) {
-      _ad = wx.createRewardedVideoAd({ adUnitId: AD_UNIT_ID });
+      _ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
       _ad.onError((err) => {
         _adError = (err && (err.errMsg || err.errCode)) || '广告加载失败';
       });
@@ -70,9 +71,9 @@ function showRewardedAd() {
 }
 
 /**
- * 额度闸门：编辑器提交前调用。
+ * 额度闸门：视频下载/保存前调用。
  * 有额度 → 直接放行；没额度 → 弹窗引导看广告，看完发奖后放行。
- * @returns {Promise<boolean>} true = 可以继续处理
+ * @returns {Promise<boolean>} true = 可以继续下载
  */
 async function ensureQuota() {
   const left = quota.get();
@@ -81,8 +82,11 @@ async function ensureQuota() {
 
   const go = await new Promise((resolve) => {
     wx.showModal({
-      title: '免费额度已用完',
-      content: '观看一段短视频广告，即可解锁 ' + QUOTA_PER_AD + ' 条去水印额度。',
+      title: '下载额度已用完',
+      content:
+        '图片处理免费；下载视频每次消耗 1 条。观看一段短视频广告，即可解锁 ' +
+        QUOTA_PER_AD +
+        ' 次下载。',
       confirmText: '看广告解锁',
       cancelText: '暂不',
       confirmColor: '#185FA5',
