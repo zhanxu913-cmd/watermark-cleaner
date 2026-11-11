@@ -47,13 +47,83 @@ function getAd() {
 
   const ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
   ad.onLoad(() => {
-    // 拉取成功（无参数），无需处理
+    // 拉取成功（无参数）→ 记录就绪状态，供「展示前判断拉取是否成功」使用
+    _adLoaded[key] = true;
   });
   ad.onError((err) => {
+    _adLoaded[key] = false;
     _adErrors[key] = (err && (err.errMsg || err.errCode)) || '广告加载失败';
   });
   _ads[key] = ad;
   return ad;
+}
+
+/** 当前页面的广告是否已拉取成功（官方建议：展示广告按钮前先判断） */
+function isAdLoaded() {
+  return !!_adLoaded[pageKey()];
+}
+
+/**
+ * 确保广告拉取就绪：未就绪则主动 load() 并短暂等待（最多 waitMs 毫秒）。
+ * 用于弹「看广告解锁」弹窗之前，避免用户点了却拉不到广告。
+ */
+async function ensureLoaded(waitMs) {
+  if (isAdLoaded()) return true;
+  const ad = getAd();
+  try {
+    ad.load().catch(() => {});
+  } catch (e) {
+    /* 忽略 */
+  }
+  const deadline = Date.now() + (waitMs || 3000);
+  while (Date.now() < deadline) {
+    await sleep(200);
+    if (isAdLoaded()) return true;
+  }
+  return isAdLoaded();
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/* ---------- 每日观看次数防护 ----------
+ * 官方说明：每个用户每天可观看激励视频广告的次数有限（平台侧限制）。
+ * 超限后 show() 必然失败，与其让用户白等，不如本地先拦。
+ * 上限设为 MAX_AD_PER_DAY（宽松值，正常解锁下载远远用不完）。
+ */
+const AD_DAILY_KEY = 'wc_ad_daily_v1'; // { date: 'YYYY-MM-DD', count }
+const MAX_AD_PER_DAY = 20;
+
+function todayStr() {
+  const d = new Date();
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+function dailyCount() {
+  try {
+    const v = wx.getStorageSync(AD_DAILY_KEY);
+    if (v && v.date === todayStr()) return Math.max(0, Number(v.count) || 0);
+  } catch (e) {
+    /* 按 0 处理 */
+  }
+  return 0;
+}
+
+function bumpDailyCount() {
+  const next = { date: todayStr(), count: dailyCount() + 1 };
+  try {
+    wx.setStorageSync(AD_DAILY_KEY, next);
+  } catch (e) {
+    /* 写失败仅当日计数失效 */
+  }
+  return next.count;
 }
 
 /**
@@ -115,12 +185,43 @@ function showRewardedAd() {
 /**
  * 额度闸门：视频下载/保存前调用。
  * 有额度 → 直接放行；没额度 → 弹窗引导看广告，看完发奖后放行。
+ *
+ * 弹窗前做两道官方建议的防护：
+ *   1. 每日观看次数已达上限 → 直接告知，不再弹广告入口（平台对每用户每日次数有限制）
+ *   2. 广告未拉取成功 → 先主动 load() 并短暂等待；仍失败则提示稍后再试
  * @returns {Promise<boolean>} true = 可以继续下载
  */
 async function ensureQuota() {
   const left = quota.get();
 
   if (left > 0) return true;
+
+  // 防护一：每日观看次数上限（平台侧每用户每天有观看/拉取次数限制）
+  if (dailyCount() >= MAX_AD_PER_DAY) {
+    wx.showModal({
+      title: '今日观看次数已达上限',
+      content: '每个用户每天可观看的广告次数有限，明天再来解锁更多下载额度吧。',
+      showCancel: false,
+      confirmText: '知道了',
+      confirmColor: '#185FA5'
+    });
+    return false;
+  }
+
+  // 防护二：展示广告入口前先确认拉取成功（未就绪时主动拉取，最多等 3 秒）
+  if (isConfigured()) {
+    const ready = await ensureLoaded(3000);
+    if (!ready) {
+      wx.showModal({
+        title: '广告暂时无法播放',
+        content: '广告还在准备中，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了',
+        confirmColor: '#185FA5'
+      });
+      return false;
+    }
+  }
 
   const go = await new Promise((resolve) => {
     wx.showModal({
@@ -142,6 +243,7 @@ async function ensureQuota() {
     const r = await showRewardedAd();
     if (r === 'ended') {
       quota.add(QUOTA_PER_AD);
+      bumpDailyCount(); // 计入当日观看次数（官方：每用户每天次数有限）
       toast('已解锁 ' + QUOTA_PER_AD + ' 条额度', 'success');
       return true;
     }
