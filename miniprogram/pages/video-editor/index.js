@@ -75,6 +75,7 @@ Page({
     this._imgH = pending.height || 0;
 
     const duration = Math.max(1, Math.round(pending.duration || 0));
+    const simulator = localVideo.isSimulator();
     const supported = localVideo.isSupported();
 
     this.setData({
@@ -90,7 +91,9 @@ Page({
       endText: formatDuration(duration),
       spanText: humanDuration(duration),
       tlMidText: '已选 ' + humanDuration(duration) + ' · 已暂停',
-      queueHint: supported
+      queueHint: simulator
+        ? '开发者工具不支持本功能的调试，请点工具栏「真机调试」或「预览」在手机上处理。'
+        : supported
         ? '全离线处理：不联网、不上传，约需 ' +
           Math.max(10, Math.round(duration * 1.2)) +
           '—' +
@@ -98,8 +101,9 @@ Page({
           ' 秒。'
         : '',
       modeOptions: [],
-      // 本地处理能力决定入口状态；机型不支持时提交按钮给出明确提示
-      videoServiceEnabled: supported
+      // 模拟器 / 机型不支持时提交按钮给出明确指引
+      videoServiceEnabled: !simulator && supported,
+      simulator
     });
   },
 
@@ -636,6 +640,15 @@ Page({
 
   async submit() {
     if (this.data.submitting) return;
+    if (this.data.simulator || localVideo.isSimulator()) {
+      return wx.showModal({
+        title: '请用手机处理',
+        content:
+          '开发者工具不支持视频去水印的调试。请点工具栏「真机调试」或「预览」扫码，在手机上完成处理。',
+        showCancel: false,
+        confirmColor: '#185FA5'
+      });
+    }
     if (!localVideo.isSupported()) {
       return toast('这台手机的微信版本较低，请升级微信后重试');
     }

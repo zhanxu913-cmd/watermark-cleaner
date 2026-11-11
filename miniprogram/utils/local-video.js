@@ -33,6 +33,18 @@ function isSupported() {
   );
 }
 
+/**
+ * 开发者工具模拟器：MediaRecorder 等 API 只是空壳（函数存在、调用即报
+ * 「暂不支持此 API 调试」），isSupported() 无法识别，必须按平台单独拦截。
+ */
+function isSimulator() {
+  try {
+    return wx.getSystemInfoSync().platform === 'devtools';
+  } catch (e) {
+    return false;
+  }
+}
+
 function unsupportedError() {
   const e = new Error('这台手机的微信版本较低，暂不支持本地视频处理，请升级微信后重试');
   e.code = 'UNSUPPORTED';
@@ -329,6 +341,11 @@ function createRenderer(canvas, outW, outH, mode, regions, uvT) {
  * @returns {Promise<{tempFilePath:string, width:number, height:number, duration:number, hasAudio:boolean, audioDropped:boolean}>}
  */
 async function processVideo(opts) {
+  if (isSimulator()) {
+    const e = new Error('开发者工具不支持本功能的调试，请点工具栏「真机调试」或「预览」在手机上使用');
+    e.code = 'SIMULATOR';
+    throw e;
+  }
   if (!isSupported()) throw unsupportedError();
 
   const o = opts || {};
@@ -620,5 +637,6 @@ async function mergeAudio(silentVideo, srcVideo) {
 
 module.exports = {
   isSupported,
+  isSimulator,
   processVideo
 };
