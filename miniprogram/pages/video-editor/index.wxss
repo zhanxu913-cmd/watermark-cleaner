@@ -341,7 +341,10 @@
 /* ============ 底部 Banner 广告位 ============ */
 
 .ad-slot {
-  padding-bottom: 8rpx;
+  /* 与下方「开始处理」留出间距：原生广告层级高于 WebView，贴太近会吞掉按钮点击 */
+  padding-bottom: 24rpx;
+  /* 不参与 flex 压缩，避免小屏上广告被挤扁 */
+  flex-shrink: 0;
 }
 
 /* 开发者工具内的占位（原生 <ad> 在工具里不渲染） */
@@ -370,12 +373,14 @@
 /* 「开始处理」贴底：预览区变矮后，用 auto 外边距吸收剩余高度，
    避免按钮悬在页面中间、下方留一大块空白 */
 .editor .bottom-bar {
-  margin-top: auto;
+  margin-top: 0;
 }
 
 /* ============ 内容安全提示 ============ */
 
 .sec-tip {
+  /* 把「提示 + 广告」一起推到底部，广告不再占据预览区正下方 */
+  margin-top: auto;
   padding: 12rpx 40rpx 8rpx;
   font-size: 22rpx;
   line-height: 1.6;
