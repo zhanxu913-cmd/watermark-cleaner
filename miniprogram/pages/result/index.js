@@ -80,7 +80,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '水印清理 · 图片视频本机处理',
+      title: '全能AI去水印',
       path: '/pages/index/index'
     };
   },

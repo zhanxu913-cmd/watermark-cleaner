@@ -1,19 +1,11 @@
 <view class="page">
-  <nav-bar title="水印清理" />
+  <nav-bar title="全能AI去水印" />
 
   <view class="page-body">
-    <!-- Hero -->
-    <view class="hero">
-      <view class="t-hero">清理你自己素材上的水印</view>
-      <view class="hero-sub">图片视频全程本机处理</view>
-    </view>
-
-    <!-- 版权提示（常驻，不可关闭） -->
-    <view class="sect">
-      <view class="notice warn">
-        <view class="notice-bar"></view>
-        <view class="notice-tx">{{copyrightTip}}</view>
-      </view>
+    <!-- 去水印额度 -->
+    <view class="quota-line" bindtap="onQuotaTap" hover-class="quota-line-hover">
+      <view class="flex-1">去水印额度：{{quotaCount}} 条</view>
+      <view wx:if="{{quotaCount <= 0}}" class="quota-cta">看广告 +3 ›</view>
     </view>
 
     <!-- 本地存储占用 -->

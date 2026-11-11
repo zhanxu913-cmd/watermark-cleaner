@@ -27,6 +27,15 @@
   color: #5f5e5a;
 }
 
+.quota-line-hover {
+  opacity: 0.7;
+}
+
+.quota-cta {
+  color: #185fa5;
+  font-weight: 500;
+}
+
 .admin-entry {
   padding: 8rpx 22rpx;
   border-radius: 20rpx;

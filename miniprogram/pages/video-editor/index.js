@@ -4,6 +4,8 @@ const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
 const videoRemote = require('../../services/video-remote');
 const jobApi = require('../../services/job');
+const rewardAd = require('../../services/reward-ad');
+const quota = require('../../utils/quota');
 const { MODE, MODE_DESC } = require('../../utils/constants');
 const { toast, clamp, formatDuration, humanDuration } = require('../../utils/util');
 
@@ -712,6 +714,11 @@ Page({
 
     this.pauseVideo();
     this._cancelled = false;
+
+    // 额度闸门：不足时引导看广告解锁；用户取消则不进入处理、不建记录
+    const allowed = await rewardAd.ensureQuota();
+    if (!allowed) return;
+
     this.setData({ submitting: true, cancelling: false, progress: 2, progressLabel: '准备处理' });
 
     // 缩略图先落地到本机：记录列表靠它显示封面
@@ -779,6 +786,9 @@ Page({
         duration: result.duration || this.data.duration
       });
       app.bumpJob();
+
+      // 处理成功才扣 1 条额度（失败/取消不扣）
+      quota.consume(1);
 
       this.setData({ progress: 100, progressLabel: '完成' });
       if (result.audioDropped) {

@@ -2,19 +2,21 @@ const app = getApp();
 const jobApi = require('../../services/job');
 const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
-const { VIDEO_LIMITS } = require('../../utils/constants');
+const rewardAd = require('../../services/reward-ad');
+const quota = require('../../utils/quota');
+const { VIDEO_LIMITS, QUOTA_PER_AD } = require('../../utils/constants');
 const { toast } = require('../../utils/util');
 
 const IMAGE_MAX_SIZE = 20 * 1024 * 1024;
 
 Page({
   data: {
-    copyrightTip: '请仅处理你拥有版权的素材。去除他人作品水印可能构成侵权。',
     recent: [],
     recentLoading: true,
     videoServiceEnabled: true,
     videoHint: '框选区域 + 时间区间',
-    storageText: ''
+    storageText: '',
+    quotaCount: 0
   },
 
   onLoad() {
@@ -26,6 +28,16 @@ Page({
     if (this._jobVersion !== app.globalData.version.job) this.loadRecent();
     this.consumeAutoPick();
     this.checkVideoSupport();
+    this.setData({ quotaCount: quota.get() });
+  },
+
+  /** 点额度行：有额度 → 说明规则；没额度 → 直接走看广告解锁 */
+  async onQuotaTap() {
+    if (this.data.quotaCount > 0) {
+      return toast('每处理 1 张图或 1 段视频消耗 1 条，看广告 + ' + QUOTA_PER_AD);
+    }
+    const ok = await rewardAd.ensureQuota();
+    if (ok) this.setData({ quotaCount: quota.get() });
   },
 
   /**
@@ -60,7 +72,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '水印清理 · 图片视频本机处理',
+      title: '全能AI去水印',
       path: '/pages/index/index'
     };
   },

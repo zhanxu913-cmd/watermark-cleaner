@@ -2,6 +2,8 @@ const app = getApp();
 const image = require('../../utils/image');
 const localdb = require('../../utils/localdb');
 const jobApi = require('../../services/job');
+const rewardAd = require('../../services/reward-ad');
+const quota = require('../../utils/quota');
 const { MODE, MODE_LABEL, MODE_DESC, TOOL } = require('../../utils/constants');
 const { toast, clamp } = require('../../utils/util');
 
@@ -535,6 +537,11 @@ Page({
     }
 
     const isCrop = this.data.tool === TOOL.CROP;
+
+    // 额度闸门：不足时引导看广告解锁；用户取消则不进入处理
+    const allowed = await rewardAd.ensureQuota();
+    if (!allowed) return;
+
     this.setData({ processing: true, progress: 2, progressLabel: '准备中' });
 
     try {
@@ -579,6 +586,9 @@ Page({
       });
 
       app.bumpJob();
+
+      // 处理成功才扣 1 条额度（失败不扣）
+      quota.consume(1);
 
       this.setData({ progress: 100, progressLabel: '完成' });
 

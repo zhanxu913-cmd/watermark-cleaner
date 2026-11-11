@@ -106,7 +106,7 @@ Page({
   },
 
   onShareAppMessage() {
-    return { title: '水印清理', path: '/pages/index/index' };
+    return { title: '全能AI去水印', path: '/pages/index/index' };
   },
 
   /* ================= 数据 ================= */
