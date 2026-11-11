@@ -80,7 +80,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '水印清理 · 本地处理，原图不上传',
+      title: '水印清理 · 图片视频本机处理',
       path: '/pages/index/index'
     };
   },

@@ -59,7 +59,6 @@ Page({
     cancelling: false,
     progress: 0,
     progressLabel: '',
-    queueHint: '',
     videoServiceEnabled: true
   },
 
@@ -94,32 +93,12 @@ Page({
       endText: formatDuration(duration),
       spanText: humanDuration(duration),
       tlMidText: '已选 ' + humanDuration(duration) + ' · 已暂停',
-      queueHint: simulator
-        ? '模拟器测试专用通道：画面传到你电脑上处理，仅用于开发调试。正式版在手机上全离线完成，不联网、不上传。'
-        : supported
-        ? '全离线处理：不联网、不上传。处理耗时约等于视频时长，' +
-          duration +
-          ' 秒的视频大约需要 ' +
-          Math.max(8, Math.round(duration * 1.2)) +
-          ' 秒以上，请保持小程序在前台。'
-        : '',
       modeOptions: [],
       // 模拟器 / 机型不支持时提交按钮给出明确指引
       videoServiceEnabled: !simulator ? supported : true,
       simulator
     });
 
-    // 模拟器：探测电脑服务是否已启动，没启动就提前告知
-    if (simulator) {
-      videoRemote.serviceAvailable().then((ok) => {
-        if (!ok) {
-          this.setData({
-            queueHint:
-              '电脑上的视频服务未启动。请先双击桌面 start-video-service.bat（或项目内 video-service-lite 目录运行 npm start），再重新提交。'
-          });
-        }
-      });
-    }
   },
 
   onReady() {

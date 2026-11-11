@@ -5,7 +5,7 @@
     <!-- Hero -->
     <view class="hero">
       <view class="t-hero">清理你自己素材上的水印</view>
-      <view class="hero-sub">图片全程本机处理，不联网、不上传</view>
+      <view class="hero-sub">图片视频全程本机处理</view>
     </view>
 
     <!-- 版权提示（常驻，不可关闭） -->

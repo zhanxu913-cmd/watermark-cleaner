@@ -7,7 +7,7 @@
       <view class="avatar avatar-ph"></view>
       <view class="flex-1">
         <view class="user-name">本机模式</view>
-        <view class="user-sub">记录与文件只存在这台手机，不上传服务器</view>
+        <view class="user-sub">记录与文件只存在这台手机</view>
       </view>
     </view>
 

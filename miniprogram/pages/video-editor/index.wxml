@@ -108,7 +108,7 @@
   <!-- 说明 -->
   <view class="panel">
     <view class="notice plain">
-      <view class="notice-tx">{{queueHint}}处理全程在本机完成，不联网、不上传，原图原视频始终只在你手机里。</view>
+      <view class="notice-tx">处理耗时约等于视频时长，请保持小程序在前台；只处理有水印的片段可以更快完成。</view>
     </view>
   </view>
 
