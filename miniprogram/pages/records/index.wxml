@@ -79,7 +79,6 @@
   <view wx:if="{{selectMode}}" class="sel-bar">
     <view class="sel-all" bindtap="selectAll">全选 / 取消</view>
     <view class="sel-actions">
-      <view class="sel-btn sel-dl" bindtap="downloadSelected">下载 {{selectedCount}}</view>
       <view class="sel-btn sel-clear" bindtap="clearAll">清空全部</view>
       <view class="sel-btn sel-del" bindtap="removeSelected">删除 {{selectedCount}}</view>
     </view>

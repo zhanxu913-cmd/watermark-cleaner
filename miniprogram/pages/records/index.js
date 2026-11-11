@@ -272,64 +272,6 @@ Page({
       .catch(() => {});
   },
 
-  // 批量下载选中记录（逐条落地到小程序本地文件，并存入相册）
-  async downloadSelected() {
-    const ids = this.data.selectedIds;
-    if (!ids.length) return toast('请先选择要下载的记录');
-
-    const picked = this.data.list.filter((j) => ids.indexOf(j.id) > -1);
-    const jobs = picked.filter((j) => j.status === 'done');
-    const skipped = picked.length - jobs.length;
-    if (!jobs.length) return toast('选中的记录还没有可下载的结果');
-
-    // 视频下载走额度闸门：额度不够 → 逐次看广告解锁（每次 +3），图片免费
-    const videoCount = jobs.filter((j) => j.type === 'video').length;
-    if (videoCount > 0) {
-      while (quota.get() < videoCount) {
-        const unlocked = await rewardAd.ensureQuota();
-        if (!unlocked) return; // 用户取消或达到每日上限
-      }
-    }
-
-    const authed = await ensureAlbumAuth();
-    if (!authed) return toast('未获得相册权限，无法保存');
-
-    wx.showLoading({ title: '下载中 0/' + jobs.length, mask: true });
-
-    let ok = 0;
-    let firstErr = '';
-    for (let i = 0; i < jobs.length; i++) {
-      const j = jobs[i];
-      try {
-        const url = j.outUrl || j.outFileID;
-        if (!url) throw new Error('结果文件已过期');
-        // 每条都按「时间 + 类型」生成默认文件名，并落地到本地文件系统
-        const name = defaultFileName(j.type, url, j.fileName);
-        const path = await downloadFile(url);
-        const named = await renameLocalFile(path, name);
-        if (j.type === 'video') await saveVideo(named);
-        else await saveImage(named);
-        if (j.type === 'video') quota.consume(1); // 视频保存成功才扣 1 条
-        ok += 1;
-      } catch (e) {
-        // 记住第一条失败原因，最后明确告知用户
-        if (!firstErr) firstErr = (e && e.message) || '下载失败';
-      }
-      wx.showLoading({ title: '下载中 ' + (i + 1) + '/' + jobs.length, mask: true });
-    }
-    wx.hideLoading();
-
-    if (ok === jobs.length) {
-      toast(skipped ? '已下载 ' + ok + ' 个（跳过 ' + skipped + ' 个未完成）' : '已下载 ' + ok + ' 个到相册', 'success');
-    } else if (ok > 0) {
-      toast('成功 ' + ok + ' 个，失败 ' + (jobs.length - ok) + ' 个：' + firstErr, 'none');
-    } else {
-      toast(firstErr || '下载失败，请重试', 'none');
-    }
-
-    if (ok > 0) this.setData({ selectMode: false, selectedIds: [], selectedCount: 0 });
-  },
-
   // 单条下载：点卡片右下角「下载」（视频存相册，图片存相册）
   async onCardDownload(e) {
     const job = e.detail && e.detail.job;
