@@ -1,36 +1,46 @@
 /**
- * 激励视频广告实例（严格按官方文档规范实现）
+ * 激励视频广告（按微信官方示例实现）
  *
- * 官方文档要点：
- *   - wx.createRewardedVideoAd 返回单例，但实例【仅对当前页面有效，不允许跨页面使用】
- *     → 因此按页面路由缓存实例，每个页面各自创建/复用自己的实例
- *   - 广告组件默认隐藏、自动拉取；建议展示前提前创建以初始化
- *   - show() 被 reject 时调用 load() 重新拉取后再 show()
- *   - onClose 的 res.isEnded 判断是否完整观看（true 才发奖）
- *   - 多次调用 onClose 等监听会产生多次回调 → 先 offClose 再 onClose，保证单监听
+ * 官方示例结构：
+ *   let videoAd = null
+ *   if (wx.createRewardedVideoAd) {
+ *     videoAd = wx.createRewardedVideoAd({ adUnitId: 'xxx' })
+ *     videoAd.onLoad(() => {})
+ *     videoAd.onError((err) => { console.error('激励视频广告加载失败', err) })
+ *     videoAd.onClose((res) => {})
+ *   }
+ *   // 用户触发广告后
+ *   videoAd.show().catch(() => {
+ *     videoAd.load().then(() => videoAd.show()).catch(err => { ... })
+ *   })
  *
- * 额度只约束「视频下载」：每下载 1 段视频扣 1 条；图片处理完全免费。
- * 上线前必须配置 utils/constants.js 的 AD_UNITS.REWARDED。
- * 未配置时：开发者工具模拟器直接发放额度（测试用）；真机提示未配置。
+ * 本文件在此基础上只做三件事（不改变调用方式）：
+ *   1. 实例按页面缓存（官方要求实例仅对当前页面有效，不允许跨页复用）
+ *   2. onClose 里用 res.isEnded 判断是否完整观看，决定是否发放额度
+ *   3. 把关键事件写入本机存储，供「关于 → 广告诊断」在真机上查看
+ *
+ * 额度规则：图片免费；视频下载 1 段 = 1 条额度。
+ *   QUOTA_FREE = 0  → 新用户不送免费额度，第一次下载即需看广告
+ *   QUOTA_PER_AD = 3 → 每看完一次广告解锁 3 次下载
  */
 
 'use strict';
 
-const { AD_UNITS, QUOTA_PER_AD, QUOTA_ENABLED, IS_DEVTOOLS } = require('../utils/constants');
+const { AD_UNITS, QUOTA_PER_AD, QUOTA_ENABLED } = require('../utils/constants');
 const quota = require('../utils/quota');
 const { toast } = require('../utils/util');
 
-// 按页面路由缓存广告实例：{ route: RewardedVideoAd }
+// 页面路由 → 广告实例
 const _ads = {};
-// 各页面广告是否已拉取就绪：{ route: boolean }
+// 页面路由 → 是否已拉取成功
 const _adLoaded = {};
-// 各页面最近一次 onError 信息：{ route: errMsg }
+// 页面路由 → 最近一次错误
 const _adErrors = {};
 
-/* ---------- 真机可读的诊断日志 ----------
- * 真机上 console 默认看不到，所以把关键事件写进本机 storage 环形缓冲，
- * 在「我的 → 关于 → 广告诊断」里直接查看，无需连电脑。
- */
+// 当前等待 onClose 的 promise（同一时刻只会有一个广告在播）
+let _pending = null;
+
+/* ---------- 真机可读的诊断日志 ---------- */
 const AD_LOG_KEY = 'wc_ad_log_v1';
 const AD_LOG_MAX = 40;
 
@@ -67,75 +77,104 @@ function pageKey() {
   }
 }
 
-/** 取当前页面的广告实例；没有则创建并注册一次性监听（onLoad/onError 只挂一次）
- *  创建失败（如低版本基础库/环境不支持）返回 null，调用方须判空并给出友好提示 */
+/** 创建（或复用）当前页面的广告实例，等价于官方示例里 onLoad 中的那段 */
 function getAd() {
   const key = pageKey();
   if (_ads[key]) return _ads[key];
 
+  if (typeof wx.createRewardedVideoAd !== 'function') {
+    _adErrors[key] = '当前基础库不支持激励视频广告';
+    logAd('不支持激励视频', '基础库版本过低');
+    return null;
+  }
+  if (!isConfigured()) {
+    _adErrors[key] = '广告位未配置';
+    logAd('广告位未配置', 'AD_UNITS.REWARDED 为空');
+    return null;
+  }
+
   let ad = null;
   try {
-    logAd('创建广告实例', 'route=' + key + ' unit=' + AD_UNITS.REWARDED);
     ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
   } catch (e) {
-    _adLoaded[key] = false;
-    _adErrors[key] = (e && e.message) || '当前环境不支持激励视频广告';
+    _adErrors[key] = (e && e.message) || '创建广告实例失败';
     logAd('创建实例失败', _adErrors[key]);
     return null;
   }
   if (!ad) {
-    _adLoaded[key] = false;
-    _adErrors[key] = '当前环境不支持激励视频广告';
+    _adErrors[key] = '创建广告实例失败';
     logAd('创建实例失败', '返回空对象');
     return null;
   }
+
   ad.onLoad(() => {
-    // 拉取成功（无参数）→ 记录就绪状态，供「展示前判断拉取是否成功」使用
     _adLoaded[key] = true;
-    logAd('广告拉取成功', 'route=' + key);
+    _adErrors[key] = '';
+    logAd('广告加载成功', 'route=' + key);
   });
+
   ad.onError((err) => {
     _adLoaded[key] = false;
-    _adErrors[key] = (err && (err.errMsg || err.errCode)) || '广告加载失败';
-    logAd(
-      '广告拉取失败',
-      'errCode=' + ((err && err.errCode) || '-') + ' errMsg=' + ((err && err.errMsg) || '-')
-    );
+    _adErrors[key] =
+      'errCode=' + ((err && err.errCode) || '-') + ' errMsg=' + ((err && err.errMsg) || '-');
+    logAd('广告加载失败', _adErrors[key]);
   });
+
+  ad.onClose((res) => {
+    // 官方：res.isEnded === true 表示完整观看；低版本 res 为 undefined 时按看完处理
+    const ended = !res || res.isEnded !== false;
+    logAd('广告关闭', 'isEnded=' + (res ? String(res.isEnded) : 'undefined'));
+    if (_pending) {
+      const p = _pending;
+      _pending = null;
+      if (p.timer) clearTimeout(p.timer);
+      p.resolve(ended ? 'ended' : 'skipped');
+    }
+  });
+
   _ads[key] = ad;
   return ad;
 }
 
-/** 当前页面的广告是否已拉取成功（官方建议：展示广告按钮前先判断） */
-function isAdLoaded() {
-  return !!_adLoaded[pageKey()];
-}
+/**
+ * 展示激励视频（官方示例的调用方式，失败自动 load 重试一次）
+ * @returns {Promise<'ended'|'skipped'>}
+ */
+function showRewardedAd() {
+  return new Promise((resolve, reject) => {
+    const ad = getAd();
+    if (!ad) {
+      return reject(new Error(_adErrors[pageKey()] || '广告实例不可用'));
+    }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+    // 兜底超时：onClose 迟迟不回调时不让页面永远等下去
+    const timer = setTimeout(() => {
+      if (!_pending) return;
+      _pending = null;
+      reject(new Error('广告播放超时，请稍后再试'));
+    }, 90000);
+    _pending = { resolve, reject, timer };
 
-/** 统一的信息弹窗（只有「知道了」，不阻塞业务流） */
-function tip(title, content) {
-  wx.showModal({
-    title,
-    content,
-    showCancel: false,
-    confirmText: '知道了',
-    confirmColor: '#185FA5'
+    logAd('调用 show');
+    ad.show()
+      .catch(() => {
+        logAd('show 失败，load 后重试');
+        return ad.load().then(() => ad.show());
+      })
+      .then(() => logAd('show 成功，等待关闭'))
+      .catch((err) => {
+        if (!_pending) return; // 已由 onClose / 超时处理
+        const p = _pending;
+        _pending = null;
+        if (p.timer) clearTimeout(p.timer);
+        const msg = (err && (err.errMsg || err.message)) || '广告显示失败';
+        logAd('广告显示失败', msg);
+        reject(new Error(msg));
+      });
   });
 }
 
-/* ---------- 每日观看次数防护 ----------
- * 官方说明：每个用户每天可观看激励视频广告的次数有限（平台侧限制，
- * 官方未公布具体数值，按用户流量质量动态调整）。超限后 show() 必然失败，
- * 与其让用户白等，不如本地先拦。
- *
- * 本地上限设为 MAX_AD_PER_DAY = 10 次/天：
- *   - 每次看完解锁 3 次下载 → 每天最多可解锁 30 次视频下载，对真实用户绰绰有余
- *   - 行业通行值：工具类小程序每天 5~10 次激励视频
- *   - 达到 10 次即触发友好提示，避免触碰平台限制后白白调用
- */
+/* ---------- 每日观看次数 ---------- */
 const AD_DAILY_KEY = 'wc_ad_daily_v1'; // { date: 'YYYY-MM-DD', count }
 const MAX_AD_PER_DAY = 10;
 
@@ -170,15 +209,10 @@ function bumpDailyCount() {
   return next.count;
 }
 
-/**
- * 预加载当前页面的广告（页面 onLoad 时调用，提前初始化组件）
- * 静默执行，失败不影响页面功能。
- */
+/** 页面 onLoad 时调用：提前创建并拉取，减少首次点击等待 */
 function preload() {
-  // 额度闸门关闭时不会展示激励视频，无需预拉取
   if (!QUOTA_ENABLED) return;
   try {
-    if (typeof wx.createRewardedVideoAd !== 'function' || !isConfigured()) return;
     const ad = getAd();
     if (!ad) return;
     const r = ad.load();
@@ -188,154 +222,40 @@ function preload() {
   }
 }
 
-/**
- * 把可能返回 undefined 的旧版接口（show/load）统一成 Promise，
- * 避免低版本基础库上 `.catch` 报 TypeError
- */
-function callAd(fn, ctx) {
-  try {
-    const r = fn.call(ctx);
-    return r && typeof r.then === 'function' ? r : Promise.resolve(r);
-  } catch (e) {
-    return Promise.reject(e);
-  }
-}
-
-/**
- * 拉起激励视频广告
- * @returns {Promise<'ended'|'skipped'>} ended = 完整看完（可发奖）
- */
-function showRewardedAd() {
-  return new Promise((resolve, reject) => {
-    if (typeof wx.createRewardedVideoAd !== 'function') {
-      return reject(new Error('当前微信版本不支持激励视频广告'));
-    }
-    if (!isConfigured()) {
-      return reject(
-        new Error(
-          '广告位未配置：请先在 mp 后台开通流量主并创建激励视频广告位，再把 ID 填入 utils/constants.js 的 AD_UNITS.REWARDED'
-        )
-      );
-    }
-
-    const key = pageKey();
-    const ad = getAd();
-    if (!ad) {
-      return reject(new Error(_adErrors[key] || '当前环境不支持激励视频广告'));
-    }
-
-    let settled = false;
-    let timer = null;
-
-    // 单监听：挂新监听前先清空历史监听，避免多次观看后 onClose 累积重复回调
-    const closeHandler = (res) => {
-      if (settled) return;
-      settled = true;
-      if (timer) clearTimeout(timer);
-      removeClose();
-      logAd('广告关闭', 'isEnded=' + (res && typeof res.isEnded !== 'undefined' ? res.isEnded : 'undefined'));
-      // 兼容低版本：res 为 undefined 时视为看完（旧版关闭按钮只在播完后出现）
-      resolve(res && res.isEnded === false ? 'skipped' : 'ended');
-    };
-    const removeClose = () => {
-      try {
-        ad.offClose && ad.offClose(closeHandler);
-      } catch (e) {
-        /* 忽略 */
-      }
-    };
-
-    // 播放超时保护：onClose 迟迟不回调时不至于让用户永远卡在「保存中…」
-    const AD_TIMEOUT_MS = 90000;
-    timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      removeClose();
-      reject(new Error('广告播放超时，请稍后再试'));
-    }, AD_TIMEOUT_MS);
-
-    try {
-      ad.offClose && ad.offClose(); // 清空历史监听（无参 = 全部移除）
-    } catch (e) {
-      /* 忽略 */
-    }
-    ad.onClose(closeHandler);
-
-    // 每次播放结束后组件都需要重新 load 才能再次 show，先标记为未就绪
-    _adLoaded[key] = false;
-
-    // 拉取失败 → load() 重新拉取 → 再 show()（官方推荐写法）
-    logAd('调用 show');
-    callAd(ad.show, ad)
-      .then(() => logAd('show 成功，等待用户关闭'))
-      .catch((e1) => {
-        logAd('show 失败，重新 load', (e1 && (e1.errMsg || e1.message)) || '-');
-        return callAd(ad.load, ad).then(() => callAd(ad.show, ad)).then(() => logAd('重试 show 成功'));
-      })
-      .catch((e2) => {
-        if (settled) return;
-        settled = true;
-        if (timer) clearTimeout(timer);
-        removeClose();
-        logAd('广告展示失败', (e2 && (e2.errMsg || e2.message)) || '-');
-        reject(new Error(_adErrors[key] || '广告拉取失败，请稍后再试'));
-      });
+/** 统一信息弹窗 */
+function tip(title, content) {
+  wx.showModal({
+    title,
+    content,
+    showCancel: false,
+    confirmText: '知道了',
+    confirmColor: '#185FA5'
   });
 }
 
 /**
- * 额度闸门：视频下载/保存前调用。
- * 有额度 → 直接放行；没额度 → 弹窗引导看广告，看完发奖后放行。
- *
- * 调用链严格对齐官方示例：用户确认后立刻 show()，失败自动 load()→show() 重试一次。
- * 只保留一道本地防护：每日观看次数上限（平台对每用户每日次数有限制）。
- * @returns {Promise<boolean>} true = 可以继续下载
+ * 额度闸门：视频下载前调用
+ * 有额度 → 放行；没额度 → 引导看广告，完整看完才发额度
+ * @returns {Promise<boolean>}
  */
 async function ensureQuota() {
-  // 总开关关闭：下载不校验额度、不弹广告，直接放行
   if (!QUOTA_ENABLED) return true;
-  try {
-    return await ensureQuotaInner();
-  } catch (e) {
-    // 未预期异常：明确告知用户，不放行（避免静默失败）
-    console.warn('[广告闸门] 异常:', (e && e.message) || e);
-    tip('广告暂时无法播放', '请稍后再试。');
-    return false;
-  }
-}
 
-async function ensureQuotaInner() {
   const left = quota.get();
-  logAd('闸门进入', '剩余额度=' + left + ' 今日已看=' + dailyCount() + '/' + MAX_AD_PER_DAY + ' 就绪=' + isAdLoaded());
-
+  logAd('闸门进入', '剩余额度=' + left + ' 今日已看=' + dailyCount() + '/' + MAX_AD_PER_DAY);
   if (left > 0) return true;
 
-  // 开发者工具：不再跳过闸门（官方说明工具内可预览广告，必要时切换基础库版本）。
-  // 若确实拉不到，会走下面的失败提示，并在诊断日志里留下 errCode。
-  if (IS_DEVTOOLS) {
-    logAd('开发者工具环境，正常走广告流程');
-  }
-
-  // 防护一：每日观看次数上限（平台侧每用户每天有观看/拉取次数限制）
   if (dailyCount() >= MAX_AD_PER_DAY) {
-    logAd('已达每日观看上限，拦截');
+    logAd('已达每日观看上限');
     tip('今日观看次数已达上限', '每个用户每天可观看的广告次数有限，明天再来解锁更多下载额度吧。');
     return false;
   }
 
-  // 不再阻塞等待广告拉取：官方示例是在用户触发后直接 show()，失败再 load()→show()。
-  // 之前的「最多等 3 秒确认就绪」既让用户以为点了没反应，也可能让 show() 失去用户手势上下文。
-  if (!isConfigured()) {
-    logAd('广告位未配置', 'AD_UNITS.REWARDED 为空');
-  } else {
-    logAd('当前拉取状态', isAdLoaded() ? '已就绪' : '未就绪（show 时自动 load 重试）');
-  }
-
   const go = await new Promise((resolve) => {
     wx.showModal({
-      title: '下载额度已用完',
+      title: '看广告解锁下载',
       content:
-        '图片处理免费；下载视频每次消耗 1 条。观看一段短视频广告，即可解锁 ' +
+        '图片处理完全免费；下载视频每条需要 1 次额度。看完一段短视频广告，即可解锁 ' +
         QUOTA_PER_AD +
         ' 次下载。',
       confirmText: '看广告解锁',
@@ -346,48 +266,30 @@ async function ensureQuotaInner() {
     });
   });
   if (!go) {
-    logAd('用户在解锁弹窗点了暂不');
+    logAd('用户点了暂不');
     return false;
   }
-  logAd('用户确认看广告，开始 show()');
 
   try {
     const r = await showRewardedAd();
     if (r === 'ended') {
       quota.add(QUOTA_PER_AD);
-      bumpDailyCount(); // 计入当日观看次数（官方：每用户每天次数有限）
-      logAd('发奖成功', '+' + QUOTA_PER_AD + ' 条，今日第 ' + dailyCount() + ' 次');
+      bumpDailyCount();
+      logAd('发放额度', '+' + QUOTA_PER_AD + '，今日第 ' + dailyCount() + ' 次');
       toast('已解锁 ' + QUOTA_PER_AD + ' 次下载', 'success');
       return true;
     }
-    // 用户中途关闭广告（isEnded = false）：按官方规范不发奖
-    logAd('广告未看完，不发奖');
+    logAd('未看完，不发额度');
     toast('广告未看完，本次未解锁');
     return false;
   } catch (e) {
-    // 模拟器 + 未配置广告位：直接发放，方便开发测试（真机不会走这条分支）
-    const isSimulator = (() => {
-      try {
-        return wx.getSystemInfoSync().platform === 'devtools';
-      } catch (e2) {
-        return false;
-      }
-    })();
-    if (isSimulator && !isConfigured()) {
-      quota.add(QUOTA_PER_AD);
-      toast('开发模式：直接解锁 ' + QUOTA_PER_AD + ' 条（上线前需配置广告位）');
-      return true;
-    }
-    // 广告播放失败（无填充/网络/机型问题）→ 给出具体原因，本次不下载
-    console.warn('[广告闸门] 广告播放失败:', (e && e.message) || e);
+    logAd('广告异常', (e && e.message) || String(e));
     tip('广告暂时无法播放', (e && e.message) || '请稍后再试。');
     return false;
   }
 }
 
-/**
- * 广告诊断信息（关于页展示用）——真机看不到 console 时的唯一排查入口
- */
+/* ---------- 诊断 ---------- */
 function getDiag() {
   let sys = {};
   try {
@@ -407,7 +309,7 @@ function getDiag() {
     unitId: AD_UNITS.REWARDED || '(未配置)',
     platform: (sys.platform || '-') + ' / 基础库 ' + (sys.SDKVersion || '-'),
     route: key,
-    loaded: !!_adLoaded[key] ? '已拉取' : '未拉取',
+    loaded: _adLoaded[key] ? '已拉取' : '未拉取',
     lastError: _adErrors[key] || '无',
     quota: quota.get(),
     daily: dailyCount() + ' / ' + MAX_AD_PER_DAY,
@@ -415,7 +317,6 @@ function getDiag() {
   };
 }
 
-/** 清除诊断日志 */
 function clearDiagLogs() {
   try {
     wx.removeStorageSync(AD_LOG_KEY);
@@ -424,13 +325,9 @@ function clearDiagLogs() {
   }
 }
 
-/**
- * 直接测试拉起激励视频（关于页按钮用），不校验额度、不发奖，
- * 只为验证「这台手机 + 这个广告位」到底能不能播。
- * @returns {Promise<string>} 结果文案
- */
+/** 手动测试拉起（不发额度，只验证能否播放） */
 async function testShow() {
-  logAd('=== 手动测试开始 ===');
+  logAd('=== 手动测试 ===');
   try {
     const r = await showRewardedAd();
     return r === 'ended' ? '广告播放完成（isEnded=true）' : '广告被提前关闭（isEnded=false）';
@@ -439,4 +336,12 @@ async function testShow() {
   }
 }
 
-module.exports = { ensureQuota, showRewardedAd, preload, isConfigured, getDiag, clearDiagLogs, testShow };
+module.exports = {
+  ensureQuota,
+  showRewardedAd,
+  preload,
+  isConfigured,
+  getDiag,
+  clearDiagLogs,
+  testShow
+};

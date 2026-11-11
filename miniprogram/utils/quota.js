@@ -3,17 +3,20 @@
  *
  * 规则：
  *   - 图片处理完全免费，不消耗额度
- *   - 每下载 1 段视频（保存到相册 / 导出文件）消耗 1 条
- *   - 新用户首次使用自动送 QUOTA_FREE 条
- *   - 额度用完 → 观看激励视频广告 → 每次解锁 QUOTA_PER_AD 条
- *   - 数据存本机 storage，清理小程序缓存会重置（可接受：额度本来就是本地权益）
+ *   - 每下载 1 段视频消耗 1 条额度
+ *   - QUOTA_FREE = 0：新用户不送免费额度，第一次下载即需看广告
+ *   - 看完一次激励视频 → QUOTA_PER_AD 条
+ *   - 数据存本机 storage，清理小程序缓存会重置（可接受：额度是本地权益）
  */
 
 'use strict';
 
 const { QUOTA_FREE } = require('./constants');
 
-const KEY = 'wc_quota_v1'; // { n: 剩余条数, init: 是否已发过新手额度 }
+const KEY = 'wc_quota_v1';
+// 版本号：v2 起取消新用户免费额度。
+// 老版本（无 v 字段或 v < 2）的本地额度会被重置，避免历史赠送的额度继续生效。
+const VER = 2;
 
 function read() {
   try {
@@ -26,6 +29,7 @@ function read() {
 }
 
 function write(obj) {
+  obj.v = VER;
   try {
     wx.setStorageSync(KEY, obj);
   } catch (e) {
@@ -33,10 +37,10 @@ function write(obj) {
   }
 }
 
-/** 取剩余条数；首次调用自动发放新手免费额度 */
+/** 取剩余条数；首次（或版本升级）自动按当前规则重置 */
 function get() {
   let v = read();
-  if (!v) {
+  if (!v || v.v !== VER) {
     v = { n: QUOTA_FREE, init: 1 };
     write(v);
   }
@@ -52,7 +56,7 @@ function add(n) {
 }
 
 /**
- * 扣减条数（处理成功后调用）
+ * 扣减条数（保存成功后调用）
  * @returns {boolean} 是否扣减成功（不足时不扣）
  */
 function consume(n) {
