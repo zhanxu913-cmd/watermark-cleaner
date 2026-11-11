@@ -663,10 +663,15 @@ async function processVideo(opts) {
   if (!outTempPath) throw new Error('视频导出失败，请重试');
 
   // 5) 音轨处理：整段处理 → 合并原音轨；裁剪过 → 无法对齐音轨，输出无声
-  const fullRange = !trimApplied && (!totalSec || endSec >= totalSec - 0.6);
+  // 注意：编辑页传入的 endSec 来自页面侧时长，解码器元数据 totalSec 与之常有
+  // 零点几秒误差（封装层 vs 可解码内容的差异），阈值取 max(1.5s, 2%)，
+  // 否则未裁剪的视频会被误判成裁剪过而静音输出。
+  const durationSlack = Math.max(1.5, totalSec * 0.02);
+  const fullRange = !trimApplied && (!totalSec || endSec >= totalSec - durationSlack);
   let finalPath = outTempPath;
   let hasAudio = false;
   let audioDropped = false;
+  let audioError = '';
 
   if (fullRange) {
     report(90, '合并音轨');
@@ -683,11 +688,14 @@ async function processVideo(opts) {
         }
       }
     } catch (e) {
-      // 音轨合并失败不阻断：输出无声视频
+      // 音轨合并失败不阻断：输出无声视频，但把原因带回给页面提示
+      console.warn('[local-video] 音轨合并失败:', (e && e.message) || e);
       audioDropped = true;
+      audioError = (e && e.message) || '音轨合并失败';
     }
   } else {
     audioDropped = true;
+    audioError = 'trimmed';
   }
 
   report(100, '完成');
@@ -697,7 +705,8 @@ async function processVideo(opts) {
     height: size.h,
     duration: Math.round((endSec - startSec) * 10) / 10,
     hasAudio,
-    audioDropped
+    audioDropped,
+    audioError
   };
 }
 
@@ -751,21 +760,21 @@ async function mergeAudio(silentVideo, srcVideo) {
   const containerA = wx.createMediaContainer();
 
   try {
-    // 处理后画面：只取视频轨
-    const dsOut = await callP(containerV, 'extractDataSource', { source: silentVideo }, 8000);
+    // 处理后画面：只取视频轨（大文件抽轨较慢，超时给足 20 秒）
+    const dsOut = await callP(containerV, 'extractDataSource', { source: silentVideo }, 20000);
     const tracksOut = (dsOut && dsOut.tracks) || [];
     const videoTrack = tracksOut.filter((t) => t.kind === 'video')[0];
     if (!videoTrack) throw new Error('处理结果缺少视频轨');
 
     // 原视频：只取音轨
-    const dsSrc = await callP(containerA, 'extractDataSource', { source: srcVideo }, 8000);
+    const dsSrc = await callP(containerA, 'extractDataSource', { source: srcVideo }, 20000);
     const tracksSrc = (dsSrc && dsSrc.tracks) || [];
     const audioTrack = tracksSrc.filter((t) => t.kind === 'audio')[0];
     if (!audioTrack) return ''; // 原视频本就无声，直接用录制产物
 
     containerV.addTrack(videoTrack);
     containerV.addTrack(audioTrack);
-    const exported = await callP(containerV, 'export', 60000);
+    const exported = await callP(containerV, 'export', 90000);
     const path = exported && (exported.tempFilePath || exported.tempFilePaths && exported.tempFilePaths[0]);
     if (!path) throw new Error('音轨合成失败');
     return path;

@@ -784,10 +784,13 @@ Page({
 
       this.setData({ progress: 100, progressLabel: '完成' });
       if (result.audioDropped) {
-        // toast 无 duration 参数，长文案用 modal 提示更稳
+        // 区分两种无声原因：主动裁剪（正常）vs 音轨合并失败（异常，可重试）
+        const trimmed = result.audioError === 'trimmed';
         wx.showModal({
           title: '提示',
-          content: '已裁剪时段：输出为无声视频（音轨无法与裁剪区间对齐）。不裁剪时段即可保留声音。',
+          content: trimmed
+            ? '已裁剪时段：输出为无声视频（音轨无法与裁剪区间对齐）。不裁剪时段即可保留声音。'
+            : '声音合并未成功，本次输出为无声视频。可返回重试一次，通常能恢复声音。',
           showCancel: false,
           confirmColor: '#185FA5'
         });
