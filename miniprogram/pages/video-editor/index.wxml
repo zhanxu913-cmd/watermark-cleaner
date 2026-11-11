@@ -59,41 +59,6 @@
     </view>
   </view>
 
-  <!-- 进度：点任意位置跳转 -->
-  <view class="panel">
-    <view class="field-label">
-      <text>处理区间</text>
-      <text class="hl">{{startText}} — {{endText}}</text>
-    </view>
-
-    <view
-      class="tl"
-      id="timeline"
-      bindtouchstart="onTlStart"
-      catchtouchmove="onTlMove"
-      bindtouchend="onTlEnd"
-      bindtouchcancel="onTlEnd"
-    >
-      <view class="tl-track"></view>
-      <view class="tl-sel" style="left:{{selLeft}}%;width:{{selWidth}}%"></view>
-      <view class="tl-h" style="left:{{selLeft}}%"></view>
-      <view class="tl-h" style="left:{{selLeft + selWidth}}%"></view>
-      <view class="tl-cursor" style="left:{{playCursor}}%"></view>
-    </view>
-
-    <view class="tl-foot">
-      <text class="tl-time">{{playTimeText}}</text>
-      <text class="tl-mid">{{tlMidText}}</text>
-      <text class="tl-time">{{durationText}}</text>
-    </view>
-
-    <view class="tl-actions">
-      <view class="link" bindtap="applyFullRange">全片处理</view>
-      <view class="link" bindtap="playSelection">播放选区</view>
-      <view class="link" bindtap="seekToEnd">定位终点</view>
-    </view>
-  </view>
-
   <!-- 处理方式 -->
   <view class="panel">
     <view class="field-label">
@@ -108,7 +73,7 @@
   <!-- 说明 -->
   <view class="panel">
     <view class="notice plain">
-      <view class="notice-tx">处理耗时约等于视频时长，请保持小程序在前台；只处理有水印的片段可以更快完成。</view>
+      <view class="notice-tx">全片处理并保留原声音，处理耗时约等于视频时长，请保持小程序在前台。</view>
     </view>
   </view>
 

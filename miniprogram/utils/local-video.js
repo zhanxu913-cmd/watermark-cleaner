@@ -436,7 +436,7 @@ function createRenderer(canvas, outW, outH, mode, regions, uvT) {
  * @param {object} [opts.region] 归一化区域 {x,y,w,h}；crop 模式下为「保留区域」
  * @param {{start:number,end:number}} opts.timeRange 处理时段（秒）
  * @param {function} [opts.onProgress] (pct 0-100, label) => void
- * @returns {Promise<{tempFilePath:string, width:number, height:number, duration:number, hasAudio:boolean, audioDropped:boolean}>}
+ * @returns {Promise<{tempFilePath:string, width:number, height:number, duration:number, hasAudio:boolean}>}
  */
 async function processVideo(opts) {
   if (isSimulator()) {
@@ -460,7 +460,7 @@ async function processVideo(opts) {
   const mode = o.mode || 'blur';
   const startSec = Math.max(0, Number((o.timeRange && o.timeRange.start) || 0));
   const endSec = Math.max(startSec + 0.5, Number((o.timeRange && o.timeRange.end) || 0));
-  const trimApplied = startSec > 0.25;
+  // 产品定位「只去水印，不改音频」：页面已固定传全片区间，这里不再做裁剪判断
 
   report(2, '读取视频信息');
 
@@ -662,19 +662,15 @@ async function processVideo(opts) {
 
   if (!outTempPath) throw new Error('视频导出失败，请重试');
 
-  // 5) 音轨处理：整段处理 → 合并原音轨；裁剪过 → 无法对齐音轨，输出无声
-  // 注意：编辑页传入的 endSec 来自页面侧时长，解码器元数据 totalSec 与之常有
-  // 零点几秒误差（封装层 vs 可解码内容的差异），阈值取 max(1.5s, 2%)，
-  // 否则未裁剪的视频会被误判成裁剪过而静音输出。
-  const durationSlack = Math.max(1.5, totalSec * 0.02);
-  const fullRange = !trimApplied && (!totalSec || endSec >= totalSec - durationSlack);
+  // 5) 音轨处理：始终合并原音轨 —— 产品定位「只去水印，不改音频」，
+  //    绝不输出无声视频。合并失败自动重试一次；仍失败直接报错让用户重试。
+  //    （原视频本身没有音轨时 mergeAudio 返回 ''，此时输出无声属正常）
+  report(90, '合并音轨');
   let finalPath = outTempPath;
   let hasAudio = false;
-  let audioDropped = false;
-  let audioError = '';
+  let mergeErr = null;
 
-  if (fullRange) {
-    report(90, '合并音轨');
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const merged = await mergeAudio(outTempPath, o.src);
       if (merged) {
@@ -687,15 +683,18 @@ async function processVideo(opts) {
           /* 忽略 */
         }
       }
+      mergeErr = null;
+      break;
     } catch (e) {
-      // 音轨合并失败不阻断：输出无声视频，但把原因带回给页面提示
-      console.warn('[local-video] 音轨合并失败:', (e && e.message) || e);
-      audioDropped = true;
-      audioError = (e && e.message) || '音轨合并失败';
+      mergeErr = e;
+      console.warn(
+        '[local-video] 音轨合并失败(第' + attempt + '次):',
+        (e && e.message) || e
+      );
     }
-  } else {
-    audioDropped = true;
-    audioError = 'trimmed';
+  }
+  if (mergeErr) {
+    throw new Error('声音合并失败，请重试');
   }
 
   report(100, '完成');
@@ -704,9 +703,7 @@ async function processVideo(opts) {
     width: size.w,
     height: size.h,
     duration: Math.round((endSec - startSec) * 10) / 10,
-    hasAudio,
-    audioDropped,
-    audioError
+    hasAudio
   };
 }
 

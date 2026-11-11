@@ -726,7 +726,8 @@ Page({
       }
     }
 
-    const trimApplied = this.data.startSec > 0.25;
+    // 产品定位「只去水印，不改音频」：固定全片处理，音轨始终保留
+    const FULL_RANGE = { start: 0, end: this.data.duration };
 
     // 先写一条 pending 记录：处理期间退出小程序，记录页也能看到这条任务
     let rec = null;
@@ -742,7 +743,7 @@ Page({
         mode: this.data.mode,
         region: this.data.regions[0] || null,
         regions: this.data.regions,
-        timeRange: { start: this.data.startSec, end: this.data.endSec },
+        timeRange: FULL_RANGE,
         thumbFileID
       });
     } catch (e) {
@@ -758,7 +759,7 @@ Page({
         mode: this.data.mode,
         region: this.data.regions[0] || null,
         regions: this.data.regions,
-        timeRange: { start: this.data.startSec, end: this.data.endSec },
+        timeRange: FULL_RANGE,
         duration: this.data.duration,
         fileName: this.data.fileName,
         shouldCancel: () => this._cancelled === true,
@@ -783,18 +784,6 @@ Page({
       app.bumpJob();
 
       this.setData({ progress: 100, progressLabel: '完成' });
-      if (result.audioDropped) {
-        // 区分两种无声原因：主动裁剪（正常）vs 音轨合并失败（异常，可重试）
-        const trimmed = result.audioError === 'trimmed';
-        wx.showModal({
-          title: '提示',
-          content: trimmed
-            ? '已裁剪时段：输出为无声视频（音轨无法与裁剪区间对齐）。不裁剪时段即可保留声音。'
-            : '声音合并未成功，本次输出为无声视频。可返回重试一次，通常能恢复声音。',
-          showCancel: false,
-          confirmColor: '#185FA5'
-        });
-      }
 
       app.globalData.pending = { jobId: rec.id, fileName: this.data.fileName };
       setTimeout(() => {
