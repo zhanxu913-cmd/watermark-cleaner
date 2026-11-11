@@ -333,3 +333,32 @@
 .sim-down .sim-dot {
   background: #f87171;
 }
+
+/* ============ 底部 Banner 广告位 ============ */
+
+.ad-slot {
+  padding-bottom: 8rpx;
+}
+
+/* 开发者工具内的占位（原生 <ad> 在工具里不渲染） */
+.v-ad-ph {
+  height: 180rpx;
+  border-radius: 16rpx;
+  border: 2rpx dashed #dcdad2;
+  background: #fafaf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.v-ad-ph-tx {
+  font-size: 26rpx;
+  color: #8a8a80;
+}
+
+.v-ad-ph-sub {
+  font-size: 22rpx;
+  color: #b4b2a9;
+  margin-top: 8rpx;
+}

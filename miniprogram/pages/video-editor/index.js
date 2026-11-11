@@ -4,7 +4,7 @@ const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
 const videoRemote = require('../../services/video-remote');
 const jobApi = require('../../services/job');
-const { MODE, MODE_DESC } = require('../../utils/constants');
+const { MODE, MODE_DESC, AD_UNITS, IS_DEVTOOLS } = require('../../utils/constants');
 const { toast, clamp, formatDuration, humanDuration } = require('../../utils/util');
 
 const HANDLE_HIT = 34;
@@ -18,6 +18,10 @@ Page({
     fileName: '',
     duration: 0,
     durationText: '',
+
+    /* 底部 Banner 广告 */
+    bannerVideoId: AD_UNITS.BANNER_VIDEO || '',
+    showBannerPh: IS_DEVTOOLS,
 
     // 布局
     canvasW: 0,
@@ -815,6 +819,11 @@ Page({
       if (cancelled) toast('已取消处理');
       else toast((e && e.message) || '处理失败，请重试');
     }
+  },
+
+  /** 底部 Banner 拉取失败：静默，不影响处理流程 */
+  onBannerError(e) {
+    console.warn('[广告] 视频页 Banner 加载失败', e && e.detail);
   },
 
   /** 取消正在进行的处理：置旗标，处理循环在下一帧检查后自行退出并清理 */

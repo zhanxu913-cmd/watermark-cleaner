@@ -77,10 +77,14 @@
     </view>
   </view>
 
-  <!-- 说明 -->
-  <view class="panel">
-    <view class="notice plain">
-      <view class="notice-tx">全片处理并保留原声音，处理耗时约等于视频时长，请保持小程序在前台。</view>
+  <!-- 底部 Banner 广告位 -->
+  <view wx:if="{{bannerVideoId}}" class="panel ad-slot">
+    <ad unit-id="{{bannerVideoId}}" ad-intervals="60" binderror="onBannerError" />
+  </view>
+  <view wx:elif="{{showBannerPh}}" class="panel ad-slot">
+    <view class="v-ad-ph">
+      <view class="v-ad-ph-tx">Banner 广告位</view>
+      <view class="v-ad-ph-sub">开发者工具内不渲染，真机可见</view>
     </view>
   </view>
 
