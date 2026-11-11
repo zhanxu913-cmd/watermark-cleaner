@@ -119,9 +119,9 @@ async function processVideoRemote(opts) {
     }
   };
 
-  // 上传：0 → 35
-  report(2, '上传到电脑服务');
-  const id = await submitRemote(o, (p) => report(2 + p * 0.33, '上传到电脑服务 ' + p + '%'));
+  // 上传：0 → 35（仅模拟器测试用；真机/线上走全离线，不会出现这段文案）
+  report(2, '模拟器测试：传到电脑处理');
+  const id = await submitRemote(o, (p) => report(2 + p * 0.33, '模拟器测试：传到电脑 ' + p + '%'));
 
   // 轮询：35 → 90
   const startedAt = Date.now();

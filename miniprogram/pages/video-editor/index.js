@@ -93,7 +93,7 @@ Page({
       spanText: humanDuration(duration),
       tlMidText: '已选 ' + humanDuration(duration) + ' · 已暂停',
       queueHint: simulator
-        ? '模拟器测试：画面经电脑上的 video-service-lite 处理（需先双击 start-video-service.bat 启动）。真机上则为全离线处理。'
+        ? '模拟器测试专用通道：画面传到你电脑上处理，仅用于开发调试。正式版在手机上全离线完成，不联网、不上传。'
         : supported
         ? '全离线处理：不联网、不上传，约需 ' +
           Math.max(10, Math.round(duration * 1.2)) +
