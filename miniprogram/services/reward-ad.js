@@ -22,6 +22,8 @@ const { toast } = require('../utils/util');
 
 // 按页面路由缓存广告实例：{ route: RewardedVideoAd }
 const _ads = {};
+// 各页面广告是否已拉取就绪：{ route: boolean }
+const _adLoaded = {};
 // 各页面最近一次 onError 信息：{ route: errMsg }
 const _adErrors = {};
 

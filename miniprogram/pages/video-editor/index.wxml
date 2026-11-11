@@ -54,7 +54,6 @@
       <view class="sbar-btn primary" bindtap="togglePlay">{{playing ? '暂停' : '播放'}}</view>
       <view class="sbar-btn" bindtap="toggleRegion">{{hasRegion ? '隐藏框' : '框选'}}</view>
       <view class="sbar-btn" bindtap="deleteSelected">删框</view>
-      <view class="sbar-btn" bindtap="toggleMuted">{{vMuted ? '取消静音' : '静音'}}</view>
       <view class="sbar-btn" bindtap="previewVideo">全屏</view>
     </view>
   </view>

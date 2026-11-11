@@ -221,10 +221,6 @@ Page({
     this.setData({ playing: false }, () => this.refreshMid());
   },
 
-  toggleMuted() {
-    this.setData({ vMuted: !this.data.vMuted });
-  },
-
   // 长按画面：临时静音并起播，松手（长按结束后再次点击或按暂停）即停
   onStageLongPress() {
     if (this.data.submitting || !this.data.src) return;
