@@ -104,6 +104,17 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** 统一的信息弹窗（只有「知道了」，不阻塞业务流） */
+function tip(title, content) {
+  wx.showModal({
+    title,
+    content,
+    showCancel: false,
+    confirmText: '知道了',
+    confirmColor: '#185FA5'
+  });
+}
+
 /* ---------- 每日观看次数防护 ----------
  * 官方说明：每个用户每天可观看激励视频广告的次数有限（平台侧限制，
  * 官方未公布具体数值，按用户流量质量动态调整）。超限后 show() 必然失败，
@@ -165,6 +176,19 @@ function preload() {
 }
 
 /**
+ * 把可能返回 undefined 的旧版接口（show/load）统一成 Promise，
+ * 避免低版本基础库上 `.catch` 报 TypeError
+ */
+function callAd(fn, ctx) {
+  try {
+    const r = fn.call(ctx);
+    return r && typeof r.then === 'function' ? r : Promise.resolve(r);
+  } catch (e) {
+    return Promise.reject(e);
+  }
+}
+
+/**
  * 拉起激励视频广告
  * @returns {Promise<'ended'|'skipped'>} ended = 完整看完（可发奖）
  */
@@ -181,30 +205,60 @@ function showRewardedAd() {
       );
     }
 
+    const key = pageKey();
     const ad = getAd();
     if (!ad) {
-      return reject(new Error(_adErrors[pageKey()] || '当前环境不支持激励视频广告'));
+      return reject(new Error(_adErrors[key] || '当前环境不支持激励视频广告'));
     }
-    // 单监听：先取消旧的 onClose 再挂新的，避免多次回调
-    const onClose = (res) => {
-      ad.offClose && ad.offClose(onClose);
+
+    let settled = false;
+    let timer = null;
+
+    // 单监听：挂新监听前先清空历史监听，避免多次观看后 onClose 累积重复回调
+    const closeHandler = (res) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      removeClose();
       // 兼容低版本：res 为 undefined 时视为看完（旧版关闭按钮只在播完后出现）
       resolve(res && res.isEnded === false ? 'skipped' : 'ended');
     };
+    const removeClose = () => {
+      try {
+        ad.offClose && ad.offClose(closeHandler);
+      } catch (e) {
+        /* 忽略 */
+      }
+    };
+
+    // 播放超时保护：onClose 迟迟不回调时不至于让用户永远卡在「保存中…」
+    const AD_TIMEOUT_MS = 90000;
+    timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      removeClose();
+      reject(new Error('广告播放超时，请稍后再试'));
+    }, AD_TIMEOUT_MS);
+
     try {
-      ad.offClose && ad.offClose(onClose);
+      ad.offClose && ad.offClose(); // 清空历史监听（无参 = 全部移除）
     } catch (e) {
       /* 忽略 */
     }
-    ad.onClose(onClose);
+    ad.onClose(closeHandler);
+
+    // 每次播放结束后组件都需要重新 load 才能再次 show，先标记为未就绪
+    _adLoaded[key] = false;
 
     // 拉取失败 → load() 重新拉取 → 再 show()（官方推荐写法）
-    ad.show()
-      .catch(() => ad.load().then(() => ad.show()))
+    callAd(ad.show, ad)
+      .catch(() => callAd(ad.load, ad).then(() => callAd(ad.show, ad)))
       .catch(() => {
-        reject(
-          new Error(_adErrors[pageKey()] || '广告拉取失败，请稍后再试')
-        );
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        removeClose();
+        reject(new Error(_adErrors[key] || '广告拉取失败，请稍后再试'));
       });
   });
 }
@@ -224,13 +278,7 @@ async function ensureQuota() {
   } catch (e) {
     // 未预期异常：明确告知用户，不放行（避免静默失败）
     console.warn('[广告闸门] 异常:', (e && e.message) || e);
-    wx.showModal({
-      title: '广告暂时无法播放',
-      content: '请稍后再试。',
-      showCancel: false,
-      confirmText: '知道了',
-      confirmColor: '#185FA5'
-    });
+    tip('广告暂时无法播放', '请稍后再试。');
     return false;
   }
 }
@@ -249,13 +297,7 @@ async function ensureQuotaInner() {
 
   // 防护一：每日观看次数上限（平台侧每用户每天有观看/拉取次数限制）
   if (dailyCount() >= MAX_AD_PER_DAY) {
-    wx.showModal({
-      title: '今日观看次数已达上限',
-      content: '每个用户每天可观看的广告次数有限，明天再来解锁更多下载额度吧。',
-      showCancel: false,
-      confirmText: '知道了',
-      confirmColor: '#185FA5'
-    });
+    tip('今日观看次数已达上限', '每个用户每天可观看的广告次数有限，明天再来解锁更多下载额度吧。');
     return false;
   }
 
@@ -265,13 +307,7 @@ async function ensureQuotaInner() {
     console.log('[广告闸门] 广告拉取就绪 =', ready, ', 最近错误 =', _adErrors[pageKey()] || '无');
     if (!ready) {
       // 广告拉不到：明确提示，本次不下载
-      wx.showModal({
-        title: '广告暂时无法播放',
-        content: '广告还在准备中，请稍后再试。',
-        showCancel: false,
-        confirmText: '知道了',
-        confirmColor: '#185FA5'
-      });
+      tip('广告暂时无法播放', '广告还在准备中，请稍后再试。');
       return false;
     }
   }
@@ -297,11 +333,11 @@ async function ensureQuotaInner() {
     if (r === 'ended') {
       quota.add(QUOTA_PER_AD);
       bumpDailyCount(); // 计入当日观看次数（官方：每用户每天次数有限）
-      toast('已解锁 ' + QUOTA_PER_AD + ' 条额度', 'success');
+      toast('已解锁 ' + QUOTA_PER_AD + ' 次下载', 'success');
       return true;
     }
-    // 走到这里只有一种情况：完整看完但渠道未计奖（理论不会发生），不发奖
-    toast('未完成观看，额度未解锁');
+    // 用户中途关闭广告（isEnded = false）：按官方规范不发奖
+    toast('广告未看完，本次未解锁');
     return false;
   } catch (e) {
     // 模拟器 + 未配置广告位：直接发放，方便开发测试（真机不会走这条分支）
@@ -317,15 +353,9 @@ async function ensureQuotaInner() {
       toast('开发模式：直接解锁 ' + QUOTA_PER_AD + ' 条（上线前需配置广告位）');
       return true;
     }
-    // 广告播放失败（无填充/网络/机型问题）→ 明确提示，本次不下载
+    // 广告播放失败（无填充/网络/机型问题）→ 给出具体原因，本次不下载
     console.warn('[广告闸门] 广告播放失败:', (e && e.message) || e);
-    wx.showModal({
-      title: '广告暂时无法播放',
-      content: '请稍后再试。',
-      showCancel: false,
-      confirmText: '知道了',
-      confirmColor: '#185FA5'
-    });
+    tip('广告暂时无法播放', (e && e.message) || '请稍后再试。');
     return false;
   }
 }

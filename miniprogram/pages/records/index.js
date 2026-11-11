@@ -51,6 +51,11 @@ Page({
     // 从编辑器跳转过来 / 切回本页时都刷新，保证新提交的任务立刻可见
     this.failStalePending();
     this.reload();
+    // 本页也有下载入口：提前拉取激励视频，避免首次点下载时现等 3 秒
+    if (!this._adPreloaded) {
+      this._adPreloaded = true;
+      rewardAd.preload();
+    }
   },
 
   /**
