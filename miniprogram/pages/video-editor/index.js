@@ -660,6 +660,20 @@ Page({
       return toast('请选择至少 ' + MIN_SPAN + ' 秒的处理区间');
     }
 
+    // 模拟器：提交前先探测电脑服务，未启动则不创建记录、直接给指引
+    if (this.data.simulator) {
+      const up = await videoRemote.serviceAvailable();
+      if (!up) {
+        return wx.showModal({
+          title: '电脑服务未启动',
+          content:
+            '模拟器测试需要电脑上的视频服务。请双击桌面 start-video-service.bat（或到 video-service-lite 目录运行 npm start），启动后再提交。',
+          showCancel: false,
+          confirmColor: '#185FA5'
+        });
+      }
+    }
+
     this.pauseVideo();
     this.setData({ submitting: true, progress: 2, progressLabel: '准备处理' });
 

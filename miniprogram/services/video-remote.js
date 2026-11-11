@@ -16,7 +16,8 @@
 const { VIDEO_API_BASE_URL, VIDEO_CLIENT_TOKEN } = require('../utils/constants');
 
 const POLL_INTERVAL = 1000;
-const POLL_MAX_MS = 5 * 60 * 1000; // 5 分钟超时兜底
+const POLL_MAX_MS = 3 * 60 * 1000; // 超时兜底
+const MAX_CONSECUTIVE_FAILS = 8; // 连续查询失败次数上限（服务断开时快速报错）
 
 /** 回调式 API 转 Promise */
 function callP(obj, method, opts) {
@@ -123,15 +124,20 @@ async function processVideoRemote(opts) {
   report(2, '模拟器测试：传到电脑处理');
   const id = await submitRemote(o, (p) => report(2 + p * 0.33, '模拟器测试：传到电脑 ' + p + '%'));
 
-  // 轮询：35 → 90
+  // 轮询：35 → 90（连续查询失败达到上限时快速报错，不傻等）
   const startedAt = Date.now();
   let info = null;
+  let fails = 0;
   while (Date.now() - startedAt < POLL_MAX_MS) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL));
     try {
       info = await statusRemote(id);
+      fails = 0;
     } catch (e) {
-      continue; // 单次查询失败忽略，下一轮继续
+      if (++fails >= MAX_CONSECUTIVE_FAILS) {
+        throw new Error('与电脑服务失去连接，请确认 start-video-service.bat 正在运行后重新提交');
+      }
+      continue;
     }
     if (info.status === 'done') break;
     if (info.status === 'failed') throw new Error(info.error || '处理失败');

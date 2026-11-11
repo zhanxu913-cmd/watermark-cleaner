@@ -46,7 +46,34 @@ Page({
 
   onShow() {
     // 从编辑器跳转过来 / 切回本页时都刷新，保证新提交的任务立刻可见
+    this.failStalePending();
     this.reload();
+  },
+
+  /**
+   * 自愈：pending 超过 6 分钟的记录直接判失败。
+   * 正常链路里记录创建后几分钟内必有终态（本机处理即时完成 / 模拟器
+   * 通道提交后页面内轮询回填）；卡在 pending 说明处理中断（退出小程序、
+   * 电脑服务断开等），留着只会永远「排队中」。
+   */
+  async failStalePending() {
+    try {
+      const res = await jobApi.list({ page: 1, pageSize: 50, filter: 'all' });
+      const list = (res && res.list) || [];
+      let changed = false;
+      for (let i = 0; i < list.length; i++) {
+        const j = list[i];
+        if (j.status !== 'pending' && j.status !== 'processing') continue;
+        // createdAt 为 'YYYY-MM-DD HH:mm:ss' 本地时间字符串
+        const t = j.createdAt ? new Date(String(j.createdAt).replace(/-/g, '/')).getTime() : 0;
+        if (!t || t >= Date.now() - 6 * 60 * 1000) continue;
+        await jobApi.update(j.id, { status: 'failed', error: '处理中断，请重新提交' });
+        changed = true;
+      }
+      if (changed) app.bumpJob();
+    } catch (e) {
+      /* 自愈失败不影响列表展示 */
+    }
   },
 
   onHide() {
