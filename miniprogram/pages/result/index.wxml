@@ -230,6 +230,9 @@
         <view class="btn-ghost {{downloading ? 'disabled' : ''}}" bindtap="download">
           {{downloading ? '下载中…' : '下载'}}
         </view>
+        <view class="btn-ghost {{exporting ? 'disabled' : ''}}" bindtap="exportFile">
+          {{exporting ? '导出中…' : '导出文件'}}
+        </view>
         <view class="btn-primary {{saving ? 'disabled' : ''}}" bindtap="save">
           {{saving ? '保存中…' : '保存到相册'}}
         </view>

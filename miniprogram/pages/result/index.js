@@ -514,6 +514,51 @@ Page({
     }
   },
 
+  /* ================= 导出文件 ================= */
+
+  // 把带规范文件名（时间戳_类型.扩展名）的成品发送到微信聊天，
+  // 接收方可另存到手机文件管理器，文件名与扩展名得以保留。
+  // 背景：saveVideoToPhotosAlbum 写入系统相册后文件名由系统生成，无法自定义。
+  async exportFile() {
+    if (this.data.exporting) return;
+    if (!this.data.canSave) {
+      return toast(this.data.outUrl ? '结果还没准备好，请稍候' : '暂无可导出的结果文件');
+    }
+    this.pauseAll();
+    this.setData({ exporting: true, progressText: '准备导出…' });
+    try {
+      const filePath = await this.grabFile();
+      this.setData({ progressText: '导出完成' });
+      const type = this.data.isVideo ? 'video' : 'image';
+      const name =
+        this.data.savedName || defaultFileName(type, this.data.outUrl, this.data.fileName);
+      const named = await renameLocalFile(filePath, name);
+      this.setData({ savedName: name, savedPath: named });
+      await new Promise((resolve, reject) => {
+        wx.shareFileMessage({
+          filePath: named,
+          fileName: name,
+          success: resolve,
+          fail: (err) => {
+            const msg = (err && err.errMsg) || '';
+            if (msg.indexOf('cancel') > -1) return reject(new Error('已取消'));
+            reject(
+              new Error(
+                msg.indexOf('not support') > -1 || msg.indexOf('notSupport') > -1
+                  ? '当前环境不支持导出文件，请在真机上使用'
+                  : '导出失败，请重试'
+              )
+            );
+          }
+        });
+      });
+    } catch (e) {
+      if ((e && e.message) !== '已取消') toast(e.message || '导出失败');
+    } finally {
+      this.setData({ exporting: false, progressText: '' });
+    }
+  },
+
   openSaved(filePath, type) {
     wx.saveFile({
       tempFilePath: filePath,
