@@ -1,14 +1,17 @@
 /**
- * 激励视频广告 + 额度闸门
+ * 激励视频广告实例（严格按官方文档规范实现）
+ *
+ * 官方文档要点：
+ *   - wx.createRewardedVideoAd 返回单例，但实例【仅对当前页面有效，不允许跨页面使用】
+ *     → 因此按页面路由缓存实例，每个页面各自创建/复用自己的实例
+ *   - 广告组件默认隐藏、自动拉取；建议展示前提前创建以初始化
+ *   - show() 被 reject 时调用 load() 重新拉取后再 show()
+ *   - onClose 的 res.isEnded 判断是否完整观看（true 才发奖）
+ *   - 多次调用 onClose 等监听会产生多次回调 → 先 offClose 再 onClose，保证单监听
  *
  * 额度只约束「视频下载」：每下载 1 段视频扣 1 条；图片处理完全免费。
- * 上线前必须配置 utils/constants.js 的 AD_UNITS.REWARDED：
- *   mp.weixin.qq.com → 流量主（累计 1000 独立访客后可开通）→ 广告位管理
- *   → 新建「激励视频」广告位 → 把 adunit-xxxx 填入 AD_UNITS.REWARDED。
- *
- * 未配置时的行为：
- *   - 开发者工具模拟器：直接发放额度（方便开发测试完整流程）
- *   - 真机：明确提示「广告位未配置」，不发放
+ * 上线前必须配置 utils/constants.js 的 AD_UNITS.REWARDED。
+ * 未配置时：开发者工具模拟器直接发放额度（测试用）；真机提示未配置。
  */
 
 'use strict';
@@ -17,11 +20,53 @@ const { AD_UNITS, QUOTA_PER_AD } = require('../utils/constants');
 const quota = require('../utils/quota');
 const { toast } = require('../utils/util');
 
-let _ad = null; // RewardedVideoAd 全局单例
-let _adError = ''; // 最近一次广告加载错误（用于提示）
+// 按页面路由缓存广告实例：{ route: RewardedVideoAd }
+const _ads = {};
+// 各页面最近一次 onError 信息：{ route: errMsg }
+const _adErrors = {};
 
 function isConfigured() {
   return !!AD_UNITS.REWARDED;
+}
+
+/** 当前页面路由（实例按页面隔离的缓存键） */
+function pageKey() {
+  try {
+    const pages = getCurrentPages();
+    const cur = pages[pages.length - 1];
+    return (cur && cur.route) || 'none';
+  } catch (e) {
+    return 'none';
+  }
+}
+
+/** 取当前页面的广告实例；没有则创建并注册一次性监听（onLoad/onError 只挂一次） */
+function getAd() {
+  const key = pageKey();
+  if (_ads[key]) return _ads[key];
+
+  const ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
+  ad.onLoad(() => {
+    // 拉取成功（无参数），无需处理
+  });
+  ad.onError((err) => {
+    _adErrors[key] = (err && (err.errMsg || err.errCode)) || '广告加载失败';
+  });
+  _ads[key] = ad;
+  return ad;
+}
+
+/**
+ * 预加载当前页面的广告（页面 onLoad 时调用，提前初始化组件）
+ * 静默执行，失败不影响页面功能。
+ */
+function preload() {
+  try {
+    if (typeof wx.createRewardedVideoAd !== 'function' || !isConfigured()) return;
+    getAd().load().catch(() => {});
+  } catch (e) {
+    /* 忽略 */
+  }
 }
 
 /**
@@ -41,32 +86,29 @@ function showRewardedAd() {
       );
     }
 
-    if (!_ad) {
-      _ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
-      _ad.onError((err) => {
-        _adError = (err && (err.errMsg || err.errCode)) || '广告加载失败';
-      });
-    }
+    const ad = getAd();
 
-    // 每次 show 前重挂 onClose，避免旧回调累积
+    // 单监听：先取消旧的 onClose 再挂新的，避免多次回调
     const onClose = (res) => {
-      _ad.offClose && _ad.offClose(onClose);
-      // 兼容低版本：res 为 undefined 时视为看完（旧版基础库关闭按钮只在播完后出现）
+      ad.offClose && ad.offClose(onClose);
+      // 兼容低版本：res 为 undefined 时视为看完（旧版关闭按钮只在播完后出现）
       resolve(res && res.isEnded === false ? 'skipped' : 'ended');
     };
     try {
-      _ad.offClose && _ad.offClose(onClose);
+      ad.offClose && ad.offClose(onClose);
     } catch (e) {
       /* 忽略 */
     }
-    _ad.onClose(onClose);
+    ad.onClose(onClose);
 
-    const show = () =>
-      _ad.show().catch(() => _ad.load().then(() => _ad.show()));
-
-    show().catch((e) => {
-      reject(new Error(_adError || (e && e.errMsg) || '广告拉取失败，请稍后再试'));
-    });
+    // 拉取失败 → load() 重新拉取 → 再 show()（官方推荐写法）
+    ad.show()
+      .catch(() => ad.load().then(() => ad.show()))
+      .catch(() => {
+        reject(
+          new Error(_adErrors[pageKey()] || '广告拉取失败，请稍后再试')
+        );
+      });
   });
 }
 
@@ -130,4 +172,4 @@ async function ensureQuota() {
   }
 }
 
-module.exports = { ensureQuota, isConfigured };
+module.exports = { ensureQuota, showRewardedAd, preload, isConfigured };

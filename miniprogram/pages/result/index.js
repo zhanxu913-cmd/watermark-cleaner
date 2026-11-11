@@ -172,6 +172,8 @@ Page({
           next.hasSource = hasSource;
           // 有原视频 + 有结果 → 默认进对比模式
           next.vMode = hasSource && job.outUrl ? 'compare' : 'single';
+          // 提前初始化激励视频广告（官方建议：展示前先创建预拉取）
+          if (!isProcessing && status === 'done') rewardAd.preload();
         } else {
           // 图片：沿用缩略图作为「处理前」
           next.srcUrl = job.thumbUrl || '';
