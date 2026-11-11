@@ -706,7 +706,7 @@ Page({
       return toast('这台手机的微信版本较低，请升级微信后重试');
     }
     if (this.data.endSec - this.data.startSec < MIN_SPAN) {
-      return toast('请选择至少 ' + MIN_SPAN + ' 秒的处理区间');
+      return toast('视频太短（不足 ' + MIN_SPAN + ' 秒），无法处理');
     }
 
     // 模拟器：提交前先探测电脑服务，未启动则不创建记录、直接给指引
