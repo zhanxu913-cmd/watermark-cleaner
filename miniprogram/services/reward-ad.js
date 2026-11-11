@@ -16,7 +16,7 @@
 
 'use strict';
 
-const { AD_UNITS, QUOTA_PER_AD } = require('../utils/constants');
+const { AD_UNITS, QUOTA_PER_AD, IS_DEVTOOLS } = require('../utils/constants');
 const quota = require('../utils/quota');
 const { toast } = require('../utils/util');
 
@@ -240,6 +240,12 @@ async function ensureQuotaInner() {
   console.log('[广告闸门] 进入, 剩余额度 =', left);
 
   if (left > 0) return true;
+
+  // 开发者工具：广告基本拉不到，跳过闸门直接放行，便于工具内自测保存流程
+  if (IS_DEVTOOLS) {
+    console.log('[广告闸门] 开发者工具环境，跳过广告直接放行');
+    return true;
+  }
 
   // 防护一：每日观看次数上限（平台侧每用户每天有观看/拉取次数限制）
   if (dailyCount() >= MAX_AD_PER_DAY) {

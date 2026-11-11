@@ -95,6 +95,30 @@ const AD_UNITS = {
   BANNER_IMAGE: 'adunit-68089657cc56cc21', // ← 图片页底部 Banner 广告位
   BANNER_RESULT: 'adunit-cf46acd2d060f865' // ← 结果页底部 Banner（暂复用首页 ID；后台新建独立位后替换即可分开统计）
 };
+
+// ============================================================
+// 开发者工具环境标记（真机恒为 false）
+//
+// 为什么需要：
+//   1. 广告组件（<ad>）在开发者工具里渲染异常，会刷屏
+//      「removeTextView: fail no root view」，并可能拖垮页面，
+//      导致页面所有点击都无响应 —— 所以开发环境不渲染 Banner
+//   2. 激励视频在工具里基本拉不到，若照样拦下载，工具内无法自测
+//      保存流程 —— 所以开发环境跳过广告闸门
+// ============================================================
+const IS_DEVTOOLS = (() => {
+  try {
+    return wx.getSystemInfoSync().platform === 'devtools';
+  } catch (e) {
+    return false;
+  }
+})();
+
+if (IS_DEVTOOLS) {
+  AD_UNITS.BANNER_HOME = '';
+  AD_UNITS.BANNER_IMAGE = '';
+  AD_UNITS.BANNER_RESULT = '';
+}
 const QUOTA_FREE = 3; // 新用户免费视频下载额度
 const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
 
@@ -111,6 +135,7 @@ module.exports = {
   MODE_DESC,
   TOOL,
   AD_UNITS,
+  IS_DEVTOOLS,
   QUOTA_FREE,
   QUOTA_PER_AD
 };
