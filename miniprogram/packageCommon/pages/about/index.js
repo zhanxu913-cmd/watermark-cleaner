@@ -1,9 +1,13 @@
 const app = getApp();
 const { BUILD_TAG } = require('../../../utils/constants');
+const rewardAd = require('../../../services/reward-ad');
 
 Page({
   data: {
     build: BUILD_TAG,
+    diag: null,
+    testing: false,
+    showDiag: false,
     steps: [
       {
         n: '1',
@@ -53,6 +57,49 @@ Page({
 
   onLoad() {
     app.globalData.pending = app.globalData.pending || {};
+  },
+
+  onShow() {
+    this.refreshDiag();
+  },
+
+  /** 刷新广告诊断信息 */
+  refreshDiag() {
+    try {
+      this.setData({ diag: rewardAd.getDiag() });
+    } catch (e) {
+      /* 忽略 */
+    }
+  },
+
+  toggleDiag() {
+    this.setData({ showDiag: !this.data.showDiag }, () => this.refreshDiag());
+  },
+
+  /** 手动拉起一次激励视频，验证这台手机能否播放广告 */
+  async testAd() {
+    if (this.data.testing) return;
+    this.setData({ testing: true });
+    wx.showLoading({ title: '拉起广告…', mask: true });
+    let msg = '';
+    try {
+      msg = await rewardAd.testShow();
+    } catch (e) {
+      msg = '异常：' + ((e && e.message) || e);
+    }
+    wx.hideLoading();
+    this.setData({ testing: false, showDiag: true }, () => this.refreshDiag());
+    wx.showModal({
+      title: '广告测试结果',
+      content: msg + '\n\n下方诊断日志里有 errCode / errMsg 明细。',
+      showCancel: false,
+      confirmColor: '#185FA5'
+    });
+  },
+
+  clearDiag() {
+    rewardAd.clearDiagLogs();
+    this.refreshDiag();
   },
 
   goPrivacy() {

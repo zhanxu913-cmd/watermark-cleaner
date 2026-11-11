@@ -48,6 +48,39 @@
       </view>
     </view>
 
+    <!-- 广告诊断：真机看不到 console 时用它定位广告问题 -->
+    <view class="sect">
+      <view class="t-card mb">广告诊断</view>
+      <view class="card">
+        <view class="row-item" bindtap="toggleDiag">
+          <view class="row-k">查看广告状态与日志</view>
+          <view class="row-r"><text class="arrow">{{showDiag ? '收起' : '展开'}}</text></view>
+        </view>
+
+        <block wx:if="{{showDiag && diag}}">
+          <view class="dg">
+            <view class="dg-row"><text class="dg-k">额度闸门</text><text class="dg-v">{{diag.enabled ? '已开启' : '已关闭'}}</text></view>
+            <view class="dg-row"><text class="dg-k">广告位</text><text class="dg-v">{{diag.unitId}}</text></view>
+            <view class="dg-row"><text class="dg-k">环境</text><text class="dg-v">{{diag.platform}}</text></view>
+            <view class="dg-row"><text class="dg-k">当前页面</text><text class="dg-v">{{diag.route}}</text></view>
+            <view class="dg-row"><text class="dg-k">拉取状态</text><text class="dg-v">{{diag.loaded}}</text></view>
+            <view class="dg-row"><text class="dg-k">最近错误</text><text class="dg-v">{{diag.lastError}}</text></view>
+            <view class="dg-row"><text class="dg-k">剩余额度</text><text class="dg-v">{{diag.quota}} 条</text></view>
+            <view class="dg-row"><text class="dg-k">今日观看</text><text class="dg-v">{{diag.daily}}</text></view>
+          </view>
+
+          <view class="dg-logs">
+            <view class="dg-log" wx:for="{{diag.logs}}" wx:key="*this">{{item}}</view>
+          </view>
+
+          <view class="dg-actions">
+            <view class="dg-btn" bindtap="testAd">{{testing ? '拉起中…' : '测试拉起激励视频'}}</view>
+            <view class="dg-btn ghost" bindtap="clearDiag">清空日志</view>
+          </view>
+        </block>
+      </view>
+    </view>
+
     <!-- 隐私入口 -->
     <view class="sect">
       <view class="card">

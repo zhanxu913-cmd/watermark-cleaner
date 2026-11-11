@@ -126,11 +126,11 @@ const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
 //   false = 下载不再需要看激励视频，也不扣额度（当前状态）
 //   true  = 恢复「额度用完看广告解锁」逻辑
 // 关闭时 Banner 广告仍会展示，不受影响。
-const QUOTA_ENABLED = false;
+const QUOTA_ENABLED = true;
 
 // 构建标记：每次发版前更新一次。关于页底部与启动日志会打印，
 // 用来确认手机/电脑跑的是不是最新上传的代码（排查「改了没生效」最直接的办法）。
-const BUILD_TAG = '2026-11-11 17:05';
+const BUILD_TAG = '2026-11-11 17:12';
 
 module.exports = {
   API_BASE_URL,

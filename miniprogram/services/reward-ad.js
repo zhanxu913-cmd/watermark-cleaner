@@ -27,6 +27,31 @@ const _adLoaded = {};
 // 各页面最近一次 onError 信息：{ route: errMsg }
 const _adErrors = {};
 
+/* ---------- 真机可读的诊断日志 ----------
+ * 真机上 console 默认看不到，所以把关键事件写进本机 storage 环形缓冲，
+ * 在「我的 → 关于 → 广告诊断」里直接查看，无需连电脑。
+ */
+const AD_LOG_KEY = 'wc_ad_log_v1';
+const AD_LOG_MAX = 40;
+
+function logAd(msg, extra) {
+  const line =
+    '[' + new Date().toTimeString().slice(0, 8) + '] ' + msg + (extra ? ' · ' + extra : '');
+  try {
+    console.log('[广告] ' + line);
+  } catch (e) {
+    /* 忽略 */
+  }
+  try {
+    const arr = wx.getStorageSync(AD_LOG_KEY) || [];
+    arr.push(line);
+    while (arr.length > AD_LOG_MAX) arr.shift();
+    wx.setStorageSync(AD_LOG_KEY, arr);
+  } catch (e) {
+    /* 忽略 */
+  }
+}
+
 function isConfigured() {
   return !!AD_UNITS.REWARDED;
 }
@@ -50,24 +75,32 @@ function getAd() {
 
   let ad = null;
   try {
+    logAd('创建广告实例', 'route=' + key + ' unit=' + AD_UNITS.REWARDED);
     ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
   } catch (e) {
     _adLoaded[key] = false;
     _adErrors[key] = (e && e.message) || '当前环境不支持激励视频广告';
+    logAd('创建实例失败', _adErrors[key]);
     return null;
   }
   if (!ad) {
     _adLoaded[key] = false;
     _adErrors[key] = '当前环境不支持激励视频广告';
+    logAd('创建实例失败', '返回空对象');
     return null;
   }
   ad.onLoad(() => {
     // 拉取成功（无参数）→ 记录就绪状态，供「展示前判断拉取是否成功」使用
     _adLoaded[key] = true;
+    logAd('广告拉取成功', 'route=' + key);
   });
   ad.onError((err) => {
     _adLoaded[key] = false;
     _adErrors[key] = (err && (err.errMsg || err.errCode)) || '广告加载失败';
+    logAd(
+      '广告拉取失败',
+      'errCode=' + ((err && err.errCode) || '-') + ' errMsg=' + ((err && err.errMsg) || '-')
+    );
   });
   _ads[key] = ad;
   return ad;
@@ -222,6 +255,7 @@ function showRewardedAd() {
       settled = true;
       if (timer) clearTimeout(timer);
       removeClose();
+      logAd('广告关闭', 'isEnded=' + (res && typeof res.isEnded !== 'undefined' ? res.isEnded : 'undefined'));
       // 兼容低版本：res 为 undefined 时视为看完（旧版关闭按钮只在播完后出现）
       resolve(res && res.isEnded === false ? 'skipped' : 'ended');
     };
@@ -253,13 +287,19 @@ function showRewardedAd() {
     _adLoaded[key] = false;
 
     // 拉取失败 → load() 重新拉取 → 再 show()（官方推荐写法）
+    logAd('调用 show');
     callAd(ad.show, ad)
-      .catch(() => callAd(ad.load, ad).then(() => callAd(ad.show, ad)))
-      .catch(() => {
+      .then(() => logAd('show 成功，等待用户关闭'))
+      .catch((e1) => {
+        logAd('show 失败，重新 load', (e1 && (e1.errMsg || e1.message)) || '-');
+        return callAd(ad.load, ad).then(() => callAd(ad.show, ad)).then(() => logAd('重试 show 成功'));
+      })
+      .catch((e2) => {
         if (settled) return;
         settled = true;
         if (timer) clearTimeout(timer);
         removeClose();
+        logAd('广告展示失败', (e2 && (e2.errMsg || e2.message)) || '-');
         reject(new Error(_adErrors[key] || '广告拉取失败，请稍后再试'));
       });
   });
@@ -289,18 +329,19 @@ async function ensureQuota() {
 
 async function ensureQuotaInner() {
   const left = quota.get();
-  console.log('[广告闸门] 进入, 剩余额度 =', left);
+  logAd('闸门进入', '剩余额度=' + left + ' 今日已看=' + dailyCount() + '/' + MAX_AD_PER_DAY + ' 就绪=' + isAdLoaded());
 
   if (left > 0) return true;
 
   // 开发者工具：广告基本拉不到，跳过闸门直接放行，便于工具内自测保存流程
   if (IS_DEVTOOLS) {
-    console.log('[广告闸门] 开发者工具环境，跳过广告直接放行');
+    logAd('开发者工具环境，跳过广告直接放行');
     return true;
   }
 
   // 防护一：每日观看次数上限（平台侧每用户每天有观看/拉取次数限制）
   if (dailyCount() >= MAX_AD_PER_DAY) {
+    logAd('已达每日观看上限，拦截');
     tip('今日观看次数已达上限', '每个用户每天可观看的广告次数有限，明天再来解锁更多下载额度吧。');
     return false;
   }
@@ -308,12 +349,14 @@ async function ensureQuotaInner() {
   // 防护二：展示广告入口前先确认拉取成功（未就绪时主动拉取，最多等 3 秒）
   if (isConfigured()) {
     const ready = await ensureLoaded(3000);
-    console.log('[广告闸门] 广告拉取就绪 =', ready, ', 最近错误 =', _adErrors[pageKey()] || '无');
+    logAd('拉取检查', 'ready=' + ready + ' lastError=' + (_adErrors[pageKey()] || '无'));
     if (!ready) {
       // 广告拉不到：明确提示，本次不下载
       tip('广告暂时无法播放', '广告还在准备中，请稍后再试。');
       return false;
     }
+  } else {
+    logAd('广告位未配置', 'AD_UNITS.REWARDED 为空');
   }
 
   const go = await new Promise((resolve) => {
@@ -330,17 +373,23 @@ async function ensureQuotaInner() {
       fail: () => resolve(false)
     });
   });
-  if (!go) return false;
+  if (!go) {
+    logAd('用户在解锁弹窗点了暂不');
+    return false;
+  }
+  logAd('用户确认看广告，开始 show()');
 
   try {
     const r = await showRewardedAd();
     if (r === 'ended') {
       quota.add(QUOTA_PER_AD);
       bumpDailyCount(); // 计入当日观看次数（官方：每用户每天次数有限）
+      logAd('发奖成功', '+' + QUOTA_PER_AD + ' 条，今日第 ' + dailyCount() + ' 次');
       toast('已解锁 ' + QUOTA_PER_AD + ' 次下载', 'success');
       return true;
     }
     // 用户中途关闭广告（isEnded = false）：按官方规范不发奖
+    logAd('广告未看完，不发奖');
     toast('广告未看完，本次未解锁');
     return false;
   } catch (e) {
@@ -364,4 +413,58 @@ async function ensureQuotaInner() {
   }
 }
 
-module.exports = { ensureQuota, showRewardedAd, preload, isConfigured };
+/**
+ * 广告诊断信息（关于页展示用）——真机看不到 console 时的唯一排查入口
+ */
+function getDiag() {
+  let sys = {};
+  try {
+    sys = wx.getSystemInfoSync() || {};
+  } catch (e) {
+    /* 忽略 */
+  }
+  const key = pageKey();
+  let logs = [];
+  try {
+    logs = (wx.getStorageSync(AD_LOG_KEY) || []).slice(-20);
+  } catch (e) {
+    /* 忽略 */
+  }
+  return {
+    enabled: QUOTA_ENABLED,
+    unitId: AD_UNITS.REWARDED || '(未配置)',
+    platform: (sys.platform || '-') + ' / 基础库 ' + (sys.SDKVersion || '-'),
+    route: key,
+    loaded: !!_adLoaded[key] ? '已拉取' : '未拉取',
+    lastError: _adErrors[key] || '无',
+    quota: quota.get(),
+    daily: dailyCount() + ' / ' + MAX_AD_PER_DAY,
+    logs: logs.length ? logs : ['（暂无记录，请先点一次「测试拉起激励视频」）']
+  };
+}
+
+/** 清除诊断日志 */
+function clearDiagLogs() {
+  try {
+    wx.removeStorageSync(AD_LOG_KEY);
+  } catch (e) {
+    /* 忽略 */
+  }
+}
+
+/**
+ * 直接测试拉起激励视频（关于页按钮用），不校验额度、不发奖，
+ * 只为验证「这台手机 + 这个广告位」到底能不能播。
+ * @returns {Promise<string>} 结果文案
+ */
+async function testShow() {
+  logAd('=== 手动测试开始 ===');
+  try {
+    const r = await showRewardedAd();
+    return r === 'ended' ? '广告播放完成（isEnded=true）' : '广告被提前关闭（isEnded=false）';
+  } catch (e) {
+    return '失败：' + ((e && e.message) || e);
+  }
+}
+
+module.exports = { ensureQuota, showRewardedAd, preload, isConfigured, getDiag, clearDiagLogs, testShow };
