@@ -4,6 +4,7 @@ const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
 const videoRemote = require('../../services/video-remote');
 const jobApi = require('../../services/job');
+const contentGuard = require('../../utils/content-guard');
 const { MODE, MODE_DESC, AD_UNITS, IS_DEVTOOLS } = require('../../utils/constants');
 const { toast, clamp, formatDuration, humanDuration } = require('../../utils/util');
 
@@ -726,6 +727,10 @@ Page({
 
     this.pauseVideo();
     this._cancelled = false;
+
+    // 内容安全：确认使用规范；将来接入检测接口后，违规素材在此被拦下
+    const allowed = await contentGuard.beforeProcess([this.data.src]);
+    if (!allowed) return;
 
     // 视频处理不消耗额度；额度在结果页「下载/保存」时校验
     this.setData({ submitting: true, cancelling: false, progress: 2, progressLabel: '准备处理' });

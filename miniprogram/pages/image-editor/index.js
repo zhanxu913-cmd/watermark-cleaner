@@ -2,6 +2,7 @@ const app = getApp();
 const image = require('../../utils/image');
 const localdb = require('../../utils/localdb');
 const jobApi = require('../../services/job');
+const contentGuard = require('../../utils/content-guard');
 const { MODE, MODE_LABEL, MODE_DESC, TOOL, AD_UNITS } = require('../../utils/constants');
 const { toast, clamp } = require('../../utils/util');
 
@@ -545,6 +546,10 @@ Page({
     }
 
     const isCrop = this.data.tool === TOOL.CROP;
+
+    // 内容安全：确认使用规范；将来接入检测接口后，违规素材在此被拦下
+    const allowed = await contentGuard.beforeProcess([this.data.src]);
+    if (!allowed) return;
 
     // 图片处理完全免费，不设额度闸门
     this.setData({ processing: true, progress: 2, progressLabel: '准备中' });

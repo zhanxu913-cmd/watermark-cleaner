@@ -3,6 +3,7 @@ const jobApi = require('../../services/job');
 const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
 const rewardAd = require('../../services/reward-ad');
+const contentGuard = require('../../utils/content-guard');
 const { VIDEO_LIMITS, AD_UNITS } = require('../../utils/constants');
 const { toast } = require('../../utils/util');
 
@@ -27,6 +28,8 @@ Page({
     if (this._jobVersion !== app.globalData.version.job) this.loadRecent();
     this.consumeAutoPick();
     this.checkVideoSupport();
+    // 内容安全：首次进入需确认「禁止处理违法违规内容」的使用规范
+    contentGuard.ensureAgreed();
   },
 
   /** Banner 广告加载成功（官方事件，与官方示例的 adLoad 对应） */

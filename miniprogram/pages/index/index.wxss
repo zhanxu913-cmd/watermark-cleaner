@@ -232,11 +232,23 @@
   padding: 20rpx 0 0;
 }
 
+/* 内容安全提示 */
+.sec-note {
+  margin: 40rpx 8rpx 0;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  background: #f7f6f2;
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: #8a8a80;
+  text-align: center;
+}
+
 .foot-note {
   text-align: center;
   font-size: 24rpx;
   color: #b4b2a9;
-  padding: 56rpx 0 20rpx;
+  padding: 32rpx 0 20rpx;
 }
 
 /* 首页底部 Banner 广告 */
