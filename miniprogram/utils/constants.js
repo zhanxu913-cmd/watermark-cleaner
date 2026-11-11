@@ -93,7 +93,8 @@ const AD_UNITS = {
   REWARDED: 'adunit-263b6ae765f8393e', // 激励视频：视频下载额度解锁
   BANNER_HOME: 'adunit-cf46acd2d060f865', // ← 首页底部 Banner 广告位
   BANNER_IMAGE: 'adunit-68089657cc56cc21', // ← 图片页底部 Banner 广告位
-  BANNER_RESULT: 'adunit-cf46acd2d060f865' // ← 结果页底部 Banner（暂复用首页 ID；后台新建独立位后替换即可分开统计）
+  BANNER_RESULT: 'adunit-cf46acd2d060f865', // ← 结果页底部 Banner（暂复用首页 ID；后台新建独立位后替换即可分开统计）
+  BANNER_MINE: 'adunit-cf46acd2d060f865' // ← 个人中心底部 Banner（暂复用首页 ID）
 };
 
 // ============================================================
@@ -118,6 +119,7 @@ if (IS_DEVTOOLS) {
   AD_UNITS.BANNER_HOME = '';
   AD_UNITS.BANNER_IMAGE = '';
   AD_UNITS.BANNER_RESULT = '';
+  AD_UNITS.BANNER_MINE = '';
 }
 const QUOTA_FREE = 0; // 新用户不送免费额度（视频下载一律先看广告）
 const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
@@ -130,7 +132,7 @@ const QUOTA_ENABLED = true;
 
 // 构建标记：每次发版前更新一次。关于页底部与启动日志会打印，
 // 用来确认手机/电脑跑的是不是最新上传的代码（排查「改了没生效」最直接的办法）。
-const BUILD_TAG = '2026-11-11 17:25';
+const BUILD_TAG = '2026-11-11 17:32';
 
 module.exports = {
   API_BASE_URL,

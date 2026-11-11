@@ -1,6 +1,7 @@
 const app = getApp();
 const jobApi = require('../../services/job');
 const { toast, confirm } = require('../../utils/util');
+const { AD_UNITS, IS_DEVTOOLS } = require('../../utils/constants');
 
 const VERSION = '2.0.0';
 
@@ -9,7 +10,12 @@ Page({
     metrics: [],
     recordText: '—',
     version: VERSION,
-    cacheText: '—'
+    cacheText: '—',
+
+    /* 底部 Banner 广告 */
+    bannerMineId: AD_UNITS.BANNER_MINE || '',
+    // 开发者工具内不渲染原生 <ad>，用占位块提示，避免误以为没加上
+    showBannerPh: IS_DEVTOOLS
   },
 
   onShow() {
@@ -64,6 +70,13 @@ Page({
 
   goNotice() {
     wx.navigateTo({ url: '/packageCommon/pages/notice/index' });
+  },
+
+  /* ================= 广告 ================= */
+
+  /** 底部 Banner 拉取失败：静默，不影响页面功能 */
+  onBannerError(e) {
+    console.warn('[广告] 个人中心 Banner 加载失败', e && e.detail);
   },
 
   /* ================= 维护 ================= */

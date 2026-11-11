@@ -40,7 +40,16 @@
       </view>
     </view>
 
+    <!-- 底部 Banner 广告：放在内容流末尾，下面留足占位，避免与原生 tabBar 重叠吞点击 -->
+    <view wx:if="{{bannerMineId}}" class="sect banner-slot">
+      <ad unit-id="{{bannerMineId}}" ad-intervals="60" binderror="onBannerError" />
+    </view>
+    <view wx:elif="{{showBannerPh}}" class="sect banner-ph">
+      <view class="banner-ph-tx">Banner 广告位</view>
+      <view class="banner-ph-sub">开发者工具内不渲染，真机可见</view>
+    </view>
+
     <view class="version">版本 {{version}}</view>
-    <view class="page-bottom-hold"></view>
+    <view class="mine-bottom-hold"></view>
   </view>
 </view>
