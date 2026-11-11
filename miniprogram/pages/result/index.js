@@ -26,6 +26,7 @@ Page({
     job: null,
     saving: false,
     canSave: false,
+    noAudio: false,
     quotaCount: 0,
     downloading: false,
     progressText: '',
@@ -161,6 +162,8 @@ Page({
           outUrl: job.outUrl || '',
           error: status === 'failed' ? job.error || '处理失败' : '',
           canSave: status === 'done' && !!job.outUrl,
+          // 成品没有音轨（原视频本身无声）时明确告知，避免用户以为是去水印弄丢了声音
+          noAudio: isVideo && job.hasAudio === false,
           processing: isProcessing,
           progressText: job.progressText || '',
           progressPct: Math.max(0, Math.min(100, Number(job.progress) || 0)),

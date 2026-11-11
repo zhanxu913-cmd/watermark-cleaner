@@ -23,6 +23,8 @@
 
 'use strict';
 
+const trace = require('./trace');
+
 const MIN_REC_DURATION = 5; // MediaRecorder duration 参数最小值（秒）
 const MAX_EDGE = 720; // 输出画面最长边上限（性能与码率的平衡点）
 
@@ -749,41 +751,82 @@ function recStop(rec) {
 }
 
 /**
+ * 轨道类型归一化。
+ * 不同基础库对轨道的字段命名略有差异（kind / type / trackType），
+ * 只认 kind 会在部分机型上取不到音轨 —— 那正是「合并成功但没声音」的成因。
+ */
+function trackKind(t) {
+  const raw = (t && (t.kind || t.type || t.trackType || t.mediaType)) || '';
+  const k = String(raw).toLowerCase();
+  if (k.indexOf('audio') > -1) return 'audio';
+  if (k.indexOf('video') > -1) return 'video';
+  // 兜底：带采样率/声道的是音频
+  if (t && (t.sampleRate || t.channelCount || t.channels)) return 'audio';
+  return '';
+}
+
+/** addTrack 容错：601 = 该轨已在容器内，可忽略 */
+function safeAddTrack(container, track, label) {
+  try {
+    container.addTrack(track);
+    trace.trace('audio', label + ' addTrack 成功');
+  } catch (e) {
+    const msg = (e && (e.errMsg || e.message)) || String(e);
+    trace.trace('audio', label + ' addTrack 失败: ' + msg);
+    if (String(msg).indexOf('601') > -1) return; // 已挂载，视为成功
+    throw e;
+  }
+}
+
+/** 抽轨并返回 tracks 数组（同时把轨道构成写进追踪日志） */
+async function extractTracks(container, src, tag) {
+  const ds = await callP(container, 'extractDataSource', { source: src }, 20000);
+  const tracks = (ds && ds.tracks) || [];
+  trace.trace(
+    'audio',
+    tag + ' 抽出 ' + tracks.length + ' 条轨: ' + tracks.map((t) => trackKind(t) || '?').join('/')
+  );
+  return tracks;
+}
+
+/**
  * 用 MediaContainer 把「处理后画面 + 原视频音轨」合成新文件
+ *
+ * 关键点（之前踩过的坑）：
+ *   MediaTrack 与创建它的 MediaContainer 强绑定，把 A 容器抽出的音轨
+ *   addTrack 到 B 容器，export 会「成功」但音轨被静默丢弃 —— 表现就是
+ *   文件能播、画面正常、唯独没有声音。所以必须在**同一个容器**里完成。
+ *
  * @returns {Promise<string>} 最终文件路径；原视频没有音轨时 resolve('')
  */
 async function mergeAudio(silentVideo, srcVideo) {
-  const containerV = wx.createMediaContainer();
-  const containerA = wx.createMediaContainer();
-
+  const c = wx.createMediaContainer();
   try {
-    // 处理后画面：只取视频轨（大文件抽轨较慢，超时给足 20 秒）
-    // 注意：extractDataSource 抽出的轨已自动挂在本容器上，
-    // 再 addTrack 同一条轨会报 errCode 601（track has created），切勿重复添加
-    const dsOut = await callP(containerV, 'extractDataSource', { source: silentVideo }, 20000);
-    const tracksOut = (dsOut && dsOut.tracks) || [];
-    const videoTrack = tracksOut.filter((t) => t.kind === 'video')[0];
+    // 顺序很重要：先抽原视频拿到音轨，再抽处理后视频拿到画面轨。
+    // 同一容器内多次抽轨时，后抽的轨不会清掉先前抽出的轨。
+    const srcTracks = await extractTracks(c, srcVideo, '原视频');
+    const audioTrack = srcTracks.filter((t) => trackKind(t) === 'audio')[0];
+    if (!audioTrack) {
+      trace.trace('audio', '原视频没有音轨，输出保持无声');
+      return '';
+    }
+
+    const outTracks = await extractTracks(c, silentVideo, '处理后');
+    const videoTrack = outTracks.filter((t) => trackKind(t) === 'video')[0];
     if (!videoTrack) throw new Error('处理结果缺少视频轨');
 
-    // 原视频：只取音轨
-    const dsSrc = await callP(containerA, 'extractDataSource', { source: srcVideo }, 20000);
-    const tracksSrc = (dsSrc && dsSrc.tracks) || [];
-    const audioTrack = tracksSrc.filter((t) => t.kind === 'audio')[0];
-    if (!audioTrack) return ''; // 原视频本就无声，直接用录制产物
+    safeAddTrack(c, videoTrack, '画面轨');
+    safeAddTrack(c, audioTrack, '音轨');
 
-    containerV.addTrack(audioTrack); // 只补音轨；视频轨已在容器内
-    const exported = await callP(containerV, 'export', 90000);
-    const path = exported && (exported.tempFilePath || exported.tempFilePaths && exported.tempFilePaths[0]);
+    const exported = await callP(c, 'export', 90000);
+    const path =
+      exported && (exported.tempFilePath || (exported.tempFilePaths && exported.tempFilePaths[0]));
     if (!path) throw new Error('音轨合成失败');
+    trace.trace('audio', '合成完成: ' + String(path).slice(-36));
     return path;
   } finally {
     try {
-      containerA.destroy();
-    } catch (e) {
-      /* 忽略 */
-    }
-    try {
-      containerV.destroy();
+      c.destroy();
     } catch (e) {
       /* 忽略 */
     }

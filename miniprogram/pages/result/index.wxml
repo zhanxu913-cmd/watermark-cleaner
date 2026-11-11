@@ -210,6 +210,14 @@
         </view>
       </view>
 
+      <!-- 原视频本身就没有音轨时明确说明，避免误以为是去水印丢了声音 -->
+      <view wx:if="{{noAudio}}" class="sect">
+        <view class="notice danger">
+          <view class="notice-bar"></view>
+          <view class="notice-tx">这条视频的原文件本身不含音轨，所以结果没有声音；换一个有声音的视频即可保留原声。</view>
+        </view>
+      </view>
+
       <view wx:if="{{status === 'failed'}}" class="sect">
         <view class="btn-row">
           <view class="btn-ghost" bindtap="retry">重新处理</view>
