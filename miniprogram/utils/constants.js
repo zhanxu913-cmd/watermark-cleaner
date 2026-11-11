@@ -130,7 +130,7 @@ const QUOTA_ENABLED = true;
 
 // 构建标记：每次发版前更新一次。关于页底部与启动日志会打印，
 // 用来确认手机/电脑跑的是不是最新上传的代码（排查「改了没生效」最直接的办法）。
-const BUILD_TAG = '2026-11-11 17:12';
+const BUILD_TAG = '2026-11-11 17:20';
 
 module.exports = {
   API_BASE_URL,

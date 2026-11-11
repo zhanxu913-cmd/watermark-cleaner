@@ -111,28 +111,6 @@ function isAdLoaded() {
   return !!_adLoaded[pageKey()];
 }
 
-/**
- * 确保广告拉取就绪：未就绪则主动 load() 并短暂等待（最多 waitMs 毫秒）。
- * 用于弹「看广告解锁」弹窗之前，避免用户点了却拉不到广告。
- */
-async function ensureLoaded(waitMs) {
-  if (isAdLoaded()) return true;
-  const ad = getAd();
-  if (!ad) return false;
-  try {
-    const r = ad.load();
-    if (r && typeof r.catch === 'function') r.catch(() => {});
-  } catch (e) {
-    /* 忽略 */
-  }
-  const deadline = Date.now() + (waitMs || 3000);
-  while (Date.now() < deadline) {
-    await sleep(200);
-    if (isAdLoaded()) return true;
-  }
-  return isAdLoaded();
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -309,9 +287,8 @@ function showRewardedAd() {
  * 额度闸门：视频下载/保存前调用。
  * 有额度 → 直接放行；没额度 → 弹窗引导看广告，看完发奖后放行。
  *
- * 弹窗前做两道官方建议的防护：
- *   1. 每日观看次数已达上限 → 直接告知，不再弹广告入口（平台对每用户每日次数有限制）
- *   2. 广告未拉取成功 → 先主动 load() 并短暂等待；仍失败则提示稍后再试
+ * 调用链严格对齐官方示例：用户确认后立刻 show()，失败自动 load()→show() 重试一次。
+ * 只保留一道本地防护：每日观看次数上限（平台对每用户每日次数有限制）。
  * @returns {Promise<boolean>} true = 可以继续下载
  */
 async function ensureQuota() {
@@ -333,10 +310,10 @@ async function ensureQuotaInner() {
 
   if (left > 0) return true;
 
-  // 开发者工具：广告基本拉不到，跳过闸门直接放行，便于工具内自测保存流程
+  // 开发者工具：不再跳过闸门（官方说明工具内可预览广告，必要时切换基础库版本）。
+  // 若确实拉不到，会走下面的失败提示，并在诊断日志里留下 errCode。
   if (IS_DEVTOOLS) {
-    logAd('开发者工具环境，跳过广告直接放行');
-    return true;
+    logAd('开发者工具环境，正常走广告流程');
   }
 
   // 防护一：每日观看次数上限（平台侧每用户每天有观看/拉取次数限制）
@@ -346,17 +323,12 @@ async function ensureQuotaInner() {
     return false;
   }
 
-  // 防护二：展示广告入口前先确认拉取成功（未就绪时主动拉取，最多等 3 秒）
-  if (isConfigured()) {
-    const ready = await ensureLoaded(3000);
-    logAd('拉取检查', 'ready=' + ready + ' lastError=' + (_adErrors[pageKey()] || '无'));
-    if (!ready) {
-      // 广告拉不到：明确提示，本次不下载
-      tip('广告暂时无法播放', '广告还在准备中，请稍后再试。');
-      return false;
-    }
-  } else {
+  // 不再阻塞等待广告拉取：官方示例是在用户触发后直接 show()，失败再 load()→show()。
+  // 之前的「最多等 3 秒确认就绪」既让用户以为点了没反应，也可能让 show() 失去用户手势上下文。
+  if (!isConfigured()) {
     logAd('广告位未配置', 'AD_UNITS.REWARDED 为空');
+  } else {
+    logAd('当前拉取状态', isAdLoaded() ? '已就绪' : '未就绪（show 时自动 load 重试）');
   }
 
   const go = await new Promise((resolve) => {
