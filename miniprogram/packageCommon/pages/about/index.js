@@ -55,8 +55,12 @@ Page({
     ]
   },
 
-  onLoad() {
+  onLoad(options) {
     app.globalData.pending = app.globalData.pending || {};
+    // 从广告失败弹窗「看诊断」跳进来时自动展开诊断面板
+    if (options && String(options.diag) === '1') {
+      this.setData({ showDiag: true });
+    }
   },
 
   onShow() {

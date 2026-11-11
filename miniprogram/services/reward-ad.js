@@ -153,8 +153,9 @@ function showRewardedAd() {
     const timer = setTimeout(() => {
       if (!_pending) return;
       _pending = null;
-      reject(new Error('广告播放超时，请稍后再试'));
-    }, 90000);
+      logAd('广告超时', '45 秒未收到 onClose');
+      reject(new Error('广告播放超时（45 秒未关闭）'));
+    }, 45000);
     _pending = { resolve, reject, timer };
 
     logAd('调用 show');
@@ -173,6 +174,11 @@ function showRewardedAd() {
         // 优先用 onError 里带 errCode 的信息，便于定位（1004/1005/1008 等）
         const msg = _adErrors[pageKey()] || raw || '广告显示失败';
         logAd('广告显示失败', msg);
+        try {
+          console.error('[广告] show 失败，原始错误：', err);
+        } catch (e2) {
+          /* 忽略 */
+        }
         reject(new Error(msg));
       });
   });
@@ -296,8 +302,28 @@ async function ensureQuota() {
   } catch (e) {
     const msg = (e && e.message) || String(e);
     logAd('广告异常', msg);
+    try {
+      console.error('[广告] 播放失败，原始错误：', e);
+    } catch (e2) {
+      /* 忽略 */
+    }
     _gateError = msg;
-    tip('广告无法播放（' + msg + '）', '请稍后重试，或到「我的 → 关于 → 广告诊断」查看错误码。');
+    wx.showModal({
+      title: '广告无法播放',
+      content: msg + '\n\n点「看诊断」可查看完整错误码与日志。',
+      confirmText: '看诊断',
+      cancelText: '知道了',
+      confirmColor: '#185FA5',
+      success: (r) => {
+        if (r && r.confirm) {
+          try {
+            wx.navigateTo({ url: '/packageCommon/pages/about/index?diag=1' });
+          } catch (e3) {
+            /* 忽略 */
+          }
+        }
+      }
+    });
     return false;
   }
 }
