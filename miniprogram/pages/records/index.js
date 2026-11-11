@@ -1,5 +1,7 @@
 const app = getApp();
 const jobApi = require('../../services/job');
+const rewardAd = require('../../services/reward-ad');
+const quota = require('../../utils/quota');
 const { toast, confirm, debounce, ensureAlbumAuth, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt } = require('../../utils/util');
 
 const FILTERS = [
@@ -280,6 +282,15 @@ Page({
     const skipped = picked.length - jobs.length;
     if (!jobs.length) return toast('选中的记录还没有可下载的结果');
 
+    // 视频下载走额度闸门：额度不够 → 逐次看广告解锁（每次 +3），图片免费
+    const videoCount = jobs.filter((j) => j.type === 'video').length;
+    if (videoCount > 0) {
+      while (quota.get() < videoCount) {
+        const unlocked = await rewardAd.ensureQuota();
+        if (!unlocked) return; // 用户取消或达到每日上限
+      }
+    }
+
     const authed = await ensureAlbumAuth();
     if (!authed) return toast('未获得相册权限，无法保存');
 
@@ -298,6 +309,7 @@ Page({
         const named = await renameLocalFile(path, name);
         if (j.type === 'video') await saveVideo(named);
         else await saveImage(named);
+        if (j.type === 'video') quota.consume(1); // 视频保存成功才扣 1 条
         ok += 1;
       } catch (e) {
         // 记住第一条失败原因，最后明确告知用户
@@ -324,6 +336,12 @@ Page({
     if (!job) return;
     if (job.status !== 'done') return toast('该记录还没有可下载的结果');
 
+    // 视频下载走额度闸门：图片免费直接放行
+    if (job.type === 'video') {
+      const unlocked = await rewardAd.ensureQuota();
+      if (!unlocked) return;
+    }
+
     const authed = await ensureAlbumAuth();
     if (!authed) return toast('未获得相册权限，无法保存');
 
@@ -339,6 +357,7 @@ Page({
       const named = await renameLocalFile(path, name);
       if (job.type === 'video') await saveVideo(named);
       else await saveImage(named);
+      if (job.type === 'video') quota.consume(1); // 视频保存成功才扣 1 条
       wx.hideLoading();
       toast('已保存 ' + name + '（' + fmt + '）', 'success');
     } catch (err) {

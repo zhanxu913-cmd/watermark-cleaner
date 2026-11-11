@@ -2,7 +2,7 @@ const app = getApp();
 const jobApi = require('../../services/job');
 const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
-const { MODE_LABEL, JOB_STATUS_LABEL } = require('../../utils/constants');
+const { MODE_LABEL, JOB_STATUS_LABEL, AD_UNITS } = require('../../utils/constants');
 const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt } = require('../../utils/util');
 
 const POLL_INTERVAL = 3000;
@@ -32,6 +32,9 @@ Page({
     savedName: '',
     formatLabel: '',
     saveName: '',
+
+    /* 结果页底部 Banner 广告（视频/图片保存页通用） */
+    bannerResultId: AD_UNITS.BANNER_RESULT || '',
 
     /* 状态横幅 */
     bannerType: '',
@@ -657,7 +660,10 @@ Page({
   goRecords() {
     app.globalData.pending = {};
     wx.switchTab({ url: '/pages/records/index' });
-  }
+  },
+
+  /** 结果页底部 Banner 拉取失败：静默，不影响保存功能 */
+  onBannerError() {},
 });
 
 /* ================= 辅助 ================= */
