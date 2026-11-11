@@ -24,6 +24,7 @@ Page({
     showBannerPh: IS_DEVTOOLS,
 
     // 布局
+    stageH: 0, // 预览区高度（px），按视频宽高比 + 首屏可用空间算出
     canvasW: 0,
     canvasH: 0,
     dispW: 0,
@@ -101,6 +102,8 @@ Page({
       spanText: humanDuration(duration),
       tlMidText: '已选 ' + humanDuration(duration) + ' · 已暂停',
       modeOptions: [],
+      // 预览区按视频比例撑到首屏可用高度（见 computeStageHeight）
+      stageH: this.computeStageHeight(this._imgW, this._imgH),
       // 模拟器 / 机型不支持时提交按钮给出明确指引
       videoServiceEnabled: !simulator ? supported : true,
       simulator
@@ -298,7 +301,67 @@ Page({
         this._imgH = info.height;
       })
       .catch(() => {})
+      // 用缩略图的真实宽高比重算预览区高度，再挂画布
+      .then(() => this.applyStageHeight())
       .then(boot);
+  },
+
+  /**
+   * 按视频宽高比计算预览区高度：
+   *   宽度撑满（左右各 32rpx 边距），高度按比例给；
+   *   同时受「首屏可用空间」限制 —— 本页不可滚动，
+   *   Banner、安全提示与「开始处理」必须和预览区同屏。
+   */
+  computeStageHeight(iw, ih) {
+    const win = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()) || {};
+    const winW = win.windowWidth || 375;
+    const winH = win.windowHeight || 667;
+    const statusBar = win.statusBarHeight || 20;
+    const safeBottom = win.safeArea ? Math.max(0, winH - win.safeArea.bottom) : 0;
+    const rpx = winW / 750;
+
+    const stageW = winW - 64 * rpx;
+    const ratio = iw && ih ? ih / iw : 9 / 16;
+
+    // 预览区之外必须让出的高度
+    const navH = statusBar + 44;
+    const bannerH = Math.min(Math.round(stageW * 0.3), 120) + 10;
+    const tipH = Math.round(34 * rpx) + 12;
+    const bottomH = 88 + safeBottom + 12;
+    const gap = 16;
+
+    const avail = winH - navH - bannerH - tipH - bottomH - gap;
+    const maxH = Math.max(Math.round(avail), Math.round(winH * 0.3));
+    const minH = Math.round(winH * 0.28);
+
+    let h = Math.round(stageW * ratio);
+    if (h > maxH) h = maxH;
+    if (h < minH) h = minH;
+    return h;
+  },
+
+  /**
+   * 视频元数据就绪：用真实分辨率修正预览区比例
+   * （选视频时没带宽高、又没有缩略图时的兜底）
+   */
+  onMetaLoaded(e) {
+    const d = (e && e.detail) || {};
+    const w = d.width || 0;
+    const h = d.height || 0;
+    if (!w || !h) return;
+    if (w === this._imgW && h === this._imgH) return;
+    this._imgW = w;
+    this._imgH = h;
+    this.applyStageHeight().then(() =>
+      this.measureAndLayout().then(() => this.redraw())
+    );
+  },
+
+  /** 比例变化时更新预览区高度，等渲染完成再返回（画布要按新尺寸重挂） */
+  applyStageHeight() {
+    const h = this.computeStageHeight(this._imgW, this._imgH);
+    if (!h || h === this.data.stageH) return Promise.resolve();
+    return new Promise((resolve) => this.setData({ stageH: h }, resolve));
   },
 
   measureStage() {

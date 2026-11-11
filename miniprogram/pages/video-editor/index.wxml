@@ -1,8 +1,8 @@
 <view class="editor">
   <nav-bar showBack title="视频去水印" />
 
-  <!-- 区域预览：video 与 canvas 同层共存，播放 / 暂停 / 框选互不打断 -->
-  <view class="stage">
+  <!-- 区域预览：高度按视频比例自适应（占首屏大部分），video 与 canvas 同层共存 -->
+  <view class="stage" style="{{stageH ? 'height:' + stageH + 'px;' : ''}}">
     <video
       wx:if="{{src}}"
       id="vEdit"
@@ -22,6 +22,7 @@
       bindplay="onEditPlay"
       bindpause="onEditPause"
       bindended="onEditEnded"
+      bindloadedmetadata="onMetaLoaded"
     ></video>
     <image wx:if="{{!src && thumbSrc}}" class="stage-img" src="{{thumbSrc}}" mode="aspectFit" />
     <view wx:if="{{!src && !thumbSrc}}" class="stage-fallback">无法读取视频画面<br />请返回重新选择</view>
@@ -78,7 +79,7 @@
   </view>
 
   <!-- 内容安全提示（审核要求：明确提示不得含违规信息） -->
-  <view class="sec-tip">请确保素材与对外发布的内容均不含违法违规信息。</view>
+  <view class="sec-tip {{bannerVideoId || showBannerPh ? '' : 'sec-tip-auto'}}">请确保素材与对外发布的内容均不含违法违规信息。</view>
 
   <view class="bottom-bar">
     <view

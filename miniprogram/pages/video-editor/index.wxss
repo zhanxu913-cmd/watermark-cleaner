@@ -10,12 +10,10 @@
 .stage {
   position: relative;
   margin: 0 32rpx;
-  /* 预览区不再按屏幕比例撑满：留出高度给 Banner 与操作区，
-     进页面即可看到广告与「开始处理」按钮，无需滚动（本页也不可滚动） */
-  height: 30vh;
+  /* 高度由 JS 按视频宽高比算出（computeStageHeight），占首屏大部分；
+     这里只给兜底值，避免首帧抖动 */
+  height: 40vh;
   min-height: 300rpx;
-  /* 再给一个大屏上限：不同机型上预览区高度保持一致，Banner 与按钮不被挤出首屏 */
-  max-height: 380rpx;
   border-radius: 24rpx;
   overflow: hidden;
   background: #e5e3dc;
@@ -341,6 +339,9 @@
 /* ============ 底部 Banner 广告位 ============ */
 
 .ad-slot {
+  /* 把「广告 + 提示 + 按钮」整组沉到屏幕底部：
+     预览区按视频比例占住上方，中间剩余空间留在两者之间 */
+  margin-top: auto;
   padding-bottom: 8rpx;
 }
 
@@ -370,7 +371,7 @@
 /* 「开始处理」贴底：预览区变矮后，用 auto 外边距吸收剩余高度，
    避免按钮悬在页面中间、下方留一大块空白 */
 .editor .bottom-bar {
-  margin-top: auto;
+  margin-top: 0;
 }
 
 /* ============ 内容安全提示 ============ */
@@ -381,4 +382,9 @@
   line-height: 1.6;
   color: #8a8a80;
   text-align: center;
+}
+
+/* 没有广告时由提示行把底部操作区一起沉底（有广告时由 .ad-slot 负责） */
+.sec-tip-auto {
+  margin-top: auto;
 }
