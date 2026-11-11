@@ -75,19 +75,24 @@ const MODE_DESC = {
 const TOOL = { BRUSH: 'brush', RECT: 'rect', CROP: 'crop' };
 
 // ============================================================
-// 广告位配置（共 3 个）
-//   规则：图片处理完全免费；视频下载需要额度（新用户送 QUOTA_FREE 条，
-//         每下载 1 段视频扣 1 条；额度用完看激励视频解锁 QUOTA_PER_AD 条）。
-//   上线前必做：mp.weixin.qq.com → 流量主 → 广告位管理
-//   → 创建 1 个「激励视频」+ 2 个「Banner 广告」广告位
-//   → 把各自的 adunit-xxxx 填入对应字段。
-//   未配置时：激励视频在模拟器直接解锁（方便测试），真机提示未配置；
-//             Banner 广告位为空时不渲染。
+// 广告位配置（共 3 个，把后台创建的 ID 粘贴到对应引号内即可生效）
+//
+//   获取位置：mp.weixin.qq.com → 流量主 → 广告位管理 → 新建广告位
+//
+//   1. REWARDED（激励视频）已配置
+//      创建类型选「激励视频」→ 用于视频下载额度解锁（看完 +3 次下载）
+//   2. BANNER_HOME（Banner 广告）待填
+//      创建类型选「Banner 广告」→ 显示在首页底部
+//   3. BANNER_IMAGE（Banner 广告）待填
+//      创建类型选「Banner 广告」→ 显示在图片编辑页底部
+//
+//   填写格式：adunit-xxxxxxxxxx（在后台复制完整 ID）
+//   留空则该位不渲染，不影响其它功能。
 // ============================================================
 const AD_UNITS = {
   REWARDED: 'adunit-db3a55f2d766cf28', // 激励视频：视频下载额度解锁
-  BANNER_HOME: '', // Banner：首页底部
-  BANNER_IMAGE: '' // Banner：图片编辑页底部
+  BANNER_HOME: '', // ← 在这里粘贴首页 Banner 广告位 ID
+  BANNER_IMAGE: '' // ← 在这里粘贴图片页 Banner 广告位 ID
 };
 const QUOTA_FREE = 3; // 新用户免费视频下载额度
 const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
