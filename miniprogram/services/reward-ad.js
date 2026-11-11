@@ -32,15 +32,54 @@ const { toast } = require('../utils/util');
 
 // 页面路由 → 广告实例
 const _ads = {};
+// 页面路由 → 该实例创建时使用的广告位 ID
+// （换广告位后必须重建实例，否则内存里一直是旧 ID 的实例）
+const _adUnit = {};
 // 页面路由 → 是否已拉取成功
 const _adLoaded = {};
 // 页面路由 → 最近一次错误
 const _adErrors = {};
 
-// 当前等待 onClose 的 promise（同一时刻只会有一个广告在播）
+// 当前等待 onClose 的会话（同一时刻只会有一个广告在播）
 let _pending = null;
 // 最近一次闸门未通过的原因（页面屏上提示用）
 let _gateError = '';
+
+/* ---------- errCode 中文释义 ---------- */
+const ERR_TEXT = {
+  1000: '网络异常，请检查网络后重试',
+  1001: '广告位 ID 无效',
+  1002: '广告位已被关闭',
+  1004: '广告位无效，或类型不是「激励视频」',
+  1005: '广告位不属于当前小程序',
+  1006: '广告位已被删除',
+  1008: '广告暂无填充（新流量主 / 新广告位通常要等后台放量）',
+  2001: '广告组件未就绪，请稍后重试',
+  2002: '广告组件已失效，请退出页面重新进入'
+};
+
+/**
+ * 把微信返回的原始错误翻译成能看懂的一句话
+ * @param {object} err 微信回调里的 err 对象
+ * @param {string} [fallback] 没有 errCode 时的兜底文案
+ */
+function describeErr(err, fallback) {
+  const raw = (err && (err.errMsg || err.message)) || '';
+  let code = Number((err && (err.errCode || err.errno)) || 0);
+  if (!code) {
+    const m = String(raw).match(/\b(1\d{3}|2\d{3})\b/);
+    if (m) code = Number(m[1]);
+  }
+  if (code && ERR_TEXT[code]) return '[' + code + '] ' + ERR_TEXT[code];
+  if (fallback) return fallback;
+  if (raw) {
+    // 从 "errCode=1008 errMsg=..." 里再抠一次
+    const m2 = String(raw).match(/(?:errCode=)?\b(1\d{3}|2\d{3})\b/);
+    if (m2 && ERR_TEXT[Number(m2[1])]) return '[' + m2[1] + '] ' + ERR_TEXT[Number(m2[1])];
+    return raw;
+  }
+  return '广告显示失败';
+}
 
 /* ---------- 真机可读的诊断日志 ---------- */
 const AD_LOG_KEY = 'wc_ad_log_v1';
@@ -82,7 +121,15 @@ function pageKey() {
 /** 创建（或复用）当前页面的广告实例，等价于官方示例里 onLoad 中的那段 */
 function getAd() {
   const key = pageKey();
-  if (_ads[key]) return _ads[key];
+  // 缓存只在「广告位没变」时复用。换过 adUnitId 后旧实例必须重建，
+  // 否则改了常量却不生效（这是排查时最容易误判的一环）。
+  if (_ads[key] && _adUnit[key] === AD_UNITS.REWARDED) return _ads[key];
+  if (_ads[key] && _adUnit[key] !== AD_UNITS.REWARDED) {
+    logAd('广告位已变更，重建实例', _adUnit[key] + ' → ' + AD_UNITS.REWARDED);
+    delete _ads[key];
+    delete _adLoaded[key];
+    delete _adErrors[key];
+  }
 
   if (typeof wx.createRewardedVideoAd !== 'function') {
     _adErrors[key] = '当前基础库不支持激励视频广告';
@@ -99,7 +146,7 @@ function getAd() {
   try {
     ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
   } catch (e) {
-    _adErrors[key] = (e && e.message) || '创建广告实例失败';
+    _adErrors[key] = describeErr(e, '创建广告实例失败');
     logAd('创建实例失败', _adErrors[key]);
     return null;
   }
@@ -117,69 +164,151 @@ function getAd() {
 
   ad.onError((err) => {
     _adLoaded[key] = false;
-    _adErrors[key] =
-      'errCode=' + ((err && err.errCode) || '-') + ' errMsg=' + ((err && err.errMsg) || '-');
-    logAd('广告加载失败', _adErrors[key]);
+    const text = describeErr(err);
+    _adErrors[key] = text;
+    logAd('广告加载失败', text);
+    try {
+      console.error('[广告] onError 原始错误：', err);
+    } catch (e2) {
+      /* 忽略 */
+    }
+    // 拉取就失败了，没必要让调用方等到 45 秒超时
+    if (_pending) _pending.done(new Error(text));
   });
 
   ad.onClose((res) => {
-    // 官方：res.isEnded === true 表示完整观看；低版本 res 为 undefined 时按看完处理
-    const ended = !res || res.isEnded !== false;
+    // 官方语义：res.isEnded === true 才算完整观看。
+    // 低版本回调不带 res（undefined），此时按看完处理，避免误伤用户。
+    const ended = !res ? true : res.isEnded === true;
     logAd('广告关闭', 'isEnded=' + (res ? String(res.isEnded) : 'undefined'));
-    if (_pending) {
-      const p = _pending;
-      _pending = null;
-      if (p.timer) clearTimeout(p.timer);
-      p.resolve(ended ? 'ended' : 'skipped');
-    }
+    if (_pending) _pending.done(null, ended ? 'ended' : 'skipped');
   });
 
   _ads[key] = ad;
+  _adUnit[key] = AD_UNITS.REWARDED;
   return ad;
+}
+
+/** 带超时的 load：无填充时 load 可能既不 resolve 也不 reject，必须自己兜底 */
+function loadWithTimeout(ad, ms) {
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const t = setTimeout(() => {
+      if (done) return;
+      done = true;
+      reject(new Error('[超时] 广告素材加载超时'));
+    }, ms);
+    let p = null;
+    try {
+      p = ad.load();
+    } catch (e) {
+      done = true;
+      clearTimeout(t);
+      return reject(e);
+    }
+    if (!p || typeof p.then !== 'function') {
+      done = true;
+      clearTimeout(t);
+      return resolve();
+    }
+    p.then(() => {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      resolve();
+    }).catch((e) => {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      reject(e);
+    });
+  });
 }
 
 /**
  * 展示激励视频（官方示例的调用方式，失败自动 load 重试一次）
+ *
+ * 相比官方示例多做了三件事，都是为了「点下去必须有可见反馈」：
+ *   1. 全程挂「加载广告…」的 loading，用户不会以为点击没生效
+ *   2. load 加 8 秒超时，避免无填充时无限挂起
+ *   3. 失败原因翻译成中文错误码说明，而不是甩英文 errMsg
+ *
  * @returns {Promise<'ended'|'skipped'>}
  */
 function showRewardedAd() {
   return new Promise((resolve, reject) => {
     const ad = getAd();
+    const key = pageKey();
     if (!ad) {
-      return reject(new Error(_adErrors[pageKey()] || '广告实例不可用'));
+      return reject(new Error(_adErrors[key] || '广告实例不可用'));
     }
 
-    // 兜底超时：onClose 迟迟不回调时不让页面永远等下去
-    const timer = setTimeout(() => {
-      if (!_pending) return;
-      _pending = null;
-      logAd('广告超时', '45 秒未收到 onClose');
-      reject(new Error('广告播放超时（45 秒未关闭）'));
-    }, 45000);
-    _pending = { resolve, reject, timer };
+    let settled = false;
+    let timer = null;
 
-    logAd('调用 show');
+    const finish = (err, val) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      if (_pending === holder) _pending = null;
+      try {
+        wx.hideLoading();
+      } catch (e) {
+        /* 忽略 */
+      }
+      if (err) reject(err);
+      else resolve(val);
+    };
+
+    // onClose / onError 通过这个句柄回到这里
+    const holder = { done: finish };
+    _pending = holder;
+
+    // 兜底超时：onClose 迟迟不回调时不让页面永远等下去
+    timer = setTimeout(() => {
+      logAd('广告超时', '45 秒未收到 onClose');
+      finish(new Error(_adErrors[key] || '[超时] 广告播放超时，请稍后重试'));
+    }, 45000);
+
+    // 立刻给出可见反馈
+    try {
+      wx.showLoading({ title: '加载广告…', mask: false });
+    } catch (e) {
+      /* 忽略 */
+    }
+
+    logAd('调用 show', 'unit=' + AD_UNITS.REWARDED);
     ad.show()
+      .then(() => {
+        logAd('show 成功，等待关闭');
+        try {
+          wx.hideLoading();
+        } catch (e) {
+          /* 忽略 */
+        }
+      })
       .catch(() => {
         logAd('show 失败，load 后重试');
-        return ad.load().then(() => ad.show());
+        return loadWithTimeout(ad, 8000)
+          .then(() => ad.show())
+          .then(() => {
+            logAd('重试 show 成功，等待关闭');
+            try {
+              wx.hideLoading();
+            } catch (e) {
+              /* 忽略 */
+            }
+          });
       })
-      .then(() => logAd('show 成功，等待关闭'))
       .catch((err) => {
-        if (!_pending) return; // 已由 onClose / 超时处理
-        const p = _pending;
-        _pending = null;
-        if (p.timer) clearTimeout(p.timer);
-        const raw = (err && (err.errMsg || err.message)) || '';
-        // 优先用 onError 里带 errCode 的信息，便于定位（1004/1005/1008 等）
-        const msg = _adErrors[pageKey()] || raw || '广告显示失败';
+        const msg = describeErr(err, _adErrors[key]);
         logAd('广告显示失败', msg);
         try {
-          console.error('[广告] show 失败，原始错误：', err);
+          console.error('[广告] 显示失败，原始错误：', err);
         } catch (e2) {
           /* 忽略 */
         }
-        reject(new Error(msg));
+        finish(new Error(msg));
       });
   });
 }
