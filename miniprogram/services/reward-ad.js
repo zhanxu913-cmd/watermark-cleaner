@@ -42,12 +42,25 @@ function pageKey() {
   }
 }
 
-/** 取当前页面的广告实例；没有则创建并注册一次性监听（onLoad/onError 只挂一次） */
+/** 取当前页面的广告实例；没有则创建并注册一次性监听（onLoad/onError 只挂一次）
+ *  创建失败（如低版本基础库/环境不支持）返回 null，调用方须判空并给出友好提示 */
 function getAd() {
   const key = pageKey();
   if (_ads[key]) return _ads[key];
 
-  const ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
+  let ad = null;
+  try {
+    ad = wx.createRewardedVideoAd({ adUnitId: AD_UNITS.REWARDED });
+  } catch (e) {
+    _adLoaded[key] = false;
+    _adErrors[key] = (e && e.message) || '当前环境不支持激励视频广告';
+    return null;
+  }
+  if (!ad) {
+    _adLoaded[key] = false;
+    _adErrors[key] = '当前环境不支持激励视频广告';
+    return null;
+  }
   ad.onLoad(() => {
     // 拉取成功（无参数）→ 记录就绪状态，供「展示前判断拉取是否成功」使用
     _adLoaded[key] = true;
@@ -72,8 +85,10 @@ function isAdLoaded() {
 async function ensureLoaded(waitMs) {
   if (isAdLoaded()) return true;
   const ad = getAd();
+  if (!ad) return false;
   try {
-    ad.load().catch(() => {});
+    const r = ad.load();
+    if (r && typeof r.catch === 'function') r.catch(() => {});
   } catch (e) {
     /* 忽略 */
   }
@@ -140,7 +155,10 @@ function bumpDailyCount() {
 function preload() {
   try {
     if (typeof wx.createRewardedVideoAd !== 'function' || !isConfigured()) return;
-    getAd().load().catch(() => {});
+    const ad = getAd();
+    if (!ad) return;
+    const r = ad.load();
+    if (r && typeof r.catch === 'function') r.catch(() => {});
   } catch (e) {
     /* 忽略 */
   }
@@ -164,7 +182,9 @@ function showRewardedAd() {
     }
 
     const ad = getAd();
-
+    if (!ad) {
+      return reject(new Error(_adErrors[pageKey()] || '当前环境不支持激励视频广告'));
+    }
     // 单监听：先取消旧的 onClose 再挂新的，避免多次回调
     const onClose = (res) => {
       ad.offClose && ad.offClose(onClose);

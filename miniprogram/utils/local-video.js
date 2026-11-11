@@ -758,6 +758,8 @@ async function mergeAudio(silentVideo, srcVideo) {
 
   try {
     // 处理后画面：只取视频轨（大文件抽轨较慢，超时给足 20 秒）
+    // 注意：extractDataSource 抽出的轨已自动挂在本容器上，
+    // 再 addTrack 同一条轨会报 errCode 601（track has created），切勿重复添加
     const dsOut = await callP(containerV, 'extractDataSource', { source: silentVideo }, 20000);
     const tracksOut = (dsOut && dsOut.tracks) || [];
     const videoTrack = tracksOut.filter((t) => t.kind === 'video')[0];
@@ -769,8 +771,7 @@ async function mergeAudio(silentVideo, srcVideo) {
     const audioTrack = tracksSrc.filter((t) => t.kind === 'audio')[0];
     if (!audioTrack) return ''; // 原视频本就无声，直接用录制产物
 
-    containerV.addTrack(videoTrack);
-    containerV.addTrack(audioTrack);
+    containerV.addTrack(audioTrack); // 只补音轨；视频轨已在容器内
     const exported = await callP(containerV, 'export', 90000);
     const path = exported && (exported.tempFilePath || exported.tempFilePaths && exported.tempFilePaths[0]);
     if (!path) throw new Error('音轨合成失败');
