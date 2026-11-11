@@ -219,21 +219,27 @@ function showRewardedAd() {
  * @returns {Promise<boolean>} true = 可以继续下载
  */
 async function ensureQuota() {
+  try {
+    return await ensureQuotaInner();
+  } catch (e) {
+    // 兜底原则：广告链路的任何异常都不能挡住用户下载
+    console.warn('[广告闸门] 异常，直接放行下载:', (e && e.message) || e);
+    toast('广告暂时不可用，本次直接下载');
+    return true;
+  }
+}
+
+async function ensureQuotaInner() {
   const left = quota.get();
   console.log('[广告闸门] 进入, 剩余额度 =', left);
 
   if (left > 0) return true;
 
   // 防护一：每日观看次数上限（平台侧每用户每天有观看/拉取次数限制）
+  // 达上限同样放行，避免用户因广告限制而无法下载
   if (dailyCount() >= MAX_AD_PER_DAY) {
-    wx.showModal({
-      title: '今日观看次数已达上限',
-      content: '每个用户每天可观看的广告次数有限，明天再来解锁更多下载额度吧。',
-      showCancel: false,
-      confirmText: '知道了',
-      confirmColor: '#185FA5'
-    });
-    return false;
+    toast('今日广告次数已达上限，本次直接下载');
+    return true;
   }
 
   // 防护二：展示广告入口前先确认拉取成功（未就绪时主动拉取，最多等 3 秒）
@@ -241,14 +247,9 @@ async function ensureQuota() {
     const ready = await ensureLoaded(3000);
     console.log('[广告闸门] 广告拉取就绪 =', ready, ', 最近错误 =', _adErrors[pageKey()] || '无');
     if (!ready) {
-      wx.showModal({
-        title: '广告暂时无法播放',
-        content: '广告还在准备中，请稍后重试。',
-        showCancel: false,
-        confirmText: '知道了',
-        confirmColor: '#185FA5'
-      });
-      return false;
+      // 广告拉不到（模拟器/无广告填充/新号无广告）→ 放行，绝不让用户卡在下载
+      toast('广告暂时不可用，本次直接下载');
+      return true;
     }
   }
 
@@ -293,13 +294,10 @@ async function ensureQuota() {
       toast('开发模式：直接解锁 ' + QUOTA_PER_AD + ' 条（上线前需配置广告位）');
       return true;
     }
-    wx.showModal({
-      title: '广告暂时无法播放',
-      content: (e && e.message) || '请稍后再试',
-      showCancel: false,
-      confirmColor: '#185FA5'
-    });
-    return false;
+    // 广告播放失败（无填充/网络/机型问题）→ 放行本次下载，不阻塞用户
+    console.warn('[广告闸门] 广告播放失败，直接放行:', (e && e.message) || e);
+    toast('广告暂时不可用，本次直接下载');
+    return true;
   }
 }
 
