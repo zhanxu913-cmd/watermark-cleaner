@@ -129,7 +129,8 @@
         <view class="bar-in" style="width:{{progress}}%"></view>
       </view>
       <view class="mask-pct">{{progress}}%</view>
-      <view class="mask-tip">请保持小程序在前台，处理中断需重新提交</view>
+      <view class="mask-tip">请保持小程序在前台。处理耗时约等于视频时长，长视频请耐心等待</view>
+      <view class="mask-cancel" bindtap="cancelProcess">{{cancelling ? '正在取消…' : '取消处理'}}</view>
     </view>
   </view>
 </view>

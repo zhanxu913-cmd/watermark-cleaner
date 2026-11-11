@@ -56,6 +56,7 @@ Page({
 
     // 提交
     submitting: false,
+    cancelling: false,
     progress: 0,
     progressLabel: '',
     queueHint: '',
@@ -96,11 +97,11 @@ Page({
       queueHint: simulator
         ? '模拟器测试专用通道：画面传到你电脑上处理，仅用于开发调试。正式版在手机上全离线完成，不联网、不上传。'
         : supported
-        ? '全离线处理：不联网、不上传，约需 ' +
-          Math.max(10, Math.round(duration * 1.2)) +
-          '—' +
-          Math.max(25, Math.round(duration * 3)) +
-          ' 秒。'
+        ? '全离线处理：不联网、不上传。处理耗时约等于视频时长，' +
+          duration +
+          ' 秒的视频大约需要 ' +
+          Math.max(8, Math.round(duration * 1.2)) +
+          ' 秒以上，请保持小程序在前台。'
         : '',
       modeOptions: [],
       // 模拟器 / 机型不支持时提交按钮给出明确指引
@@ -126,6 +127,7 @@ Page({
   },
 
   onUnload() {
+    this._cancelled = true; // 页面销毁：让处理循环尽快退出并释放解码器/录制器
     this.stopTimeBinder();
     this._ctx = null;
     this._vctx = null;
@@ -730,7 +732,8 @@ Page({
     }
 
     this.pauseVideo();
-    this.setData({ submitting: true, progress: 2, progressLabel: '准备处理' });
+    this._cancelled = false;
+    this.setData({ submitting: true, cancelling: false, progress: 2, progressLabel: '准备处理' });
 
     // 缩略图先落地到本机：记录列表靠它显示封面
     let thumbFileID = '';
@@ -777,6 +780,7 @@ Page({
         timeRange: { start: this.data.startSec, end: this.data.endSec },
         duration: this.data.duration,
         fileName: this.data.fileName,
+        shouldCancel: () => this._cancelled === true,
         onProgress: (pct, label) => {
           this.setData({ progress: Math.min(96, pct), progressLabel: label || '处理中' });
         }
@@ -813,13 +817,28 @@ Page({
         wx.switchTab({ url: '/pages/records/index' });
       }, 320);
     } catch (e) {
+      const cancelled = e && e.code === 'CANCELLED';
       // 失败也要落状态，避免记录页永远停在「处理中」
       jobApi
-        .update(rec.id, { status: 'failed', error: (e && e.message) || '处理失败' })
+        .update(rec.id, {
+          status: 'failed',
+          error: cancelled ? '已取消处理' : (e && e.message) || '处理失败'
+        })
         .catch(() => {});
       app.bumpJob();
-      this.setData({ submitting: false, progress: 0, progressLabel: '' });
-      toast((e && e.message) || '处理失败，请重试');
+      this.setData({ submitting: false, cancelling: false, progress: 0, progressLabel: '' });
+      if (cancelled) toast('已取消处理');
+      else toast((e && e.message) || '处理失败，请重试');
     }
+  },
+
+  /** 取消正在进行的处理：置旗标，处理循环在下一帧检查后自行退出并清理 */
+  cancelProcess() {
+    if (!this.data.submitting || this.data.cancelling) return;
+    if (this.data.simulator) {
+      return toast('电脑端任务已提交，无法中途取消');
+    }
+    this._cancelled = true;
+    this.setData({ cancelling: true, progressLabel: '正在取消…' });
   }
 });

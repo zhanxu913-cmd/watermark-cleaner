@@ -283,3 +283,16 @@
   text-align: center;
   line-height: 1.6;
 }
+
+.mask-cancel {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: 999rpx;
+  border: 2rpx solid #e5e2da;
+  font-size: 26rpx;
+  color: #6b6a63;
+}
+
+.mask-cancel:active {
+  background: #f7f5ef;
+}
