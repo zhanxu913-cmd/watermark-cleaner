@@ -51,17 +51,29 @@ try {
 }
 check('小程序静态完整性', staticOk, staticDetail);
 
-/* ---------------- 3. 远程地址残留 ---------------- */
+/* ---------------- 3. 双链路配置确认 ----------------
+ * 真机：全离线（local-video.js），不使用任何地址。
+ * 模拟器：走电脑 video-service-lite，地址为 localhost/127.0.0.1 属预期；
+ *          若填了局域网/公网地址则提醒（真机链路不依赖它，仅影响模拟器测试）。
+ */
 
 let leftover = '';
+let addrNote = '';
 try {
   const constants = fs.readFileSync(path.join(MP, 'utils', 'constants.js'), 'utf8');
-  if (/VIDEO_API_BASE_URL|VIDEO_CLIENT_TOKEN/.test(constants)) leftover = 'constants.js 仍含远程地址常量';
-  if (/192\.168\.\d+\.\d+|https?:\/\/(?!developers)/.test(constants)) leftover = 'constants.js 含硬编码地址';
+  const m = /VIDEO_API_BASE_URL\s*=\s*['"]([^'"]*)['"]/.exec(constants);
+  const addr = m ? m[1] : '';
+  if (addr && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(addr)) {
+    leftover = 'VIDEO_API_BASE_URL 应为 127.0.0.1/localhost（模拟器专用），当前: ' + addr;
+  }
+  if (/192\.168\.\d+\.\d+/.test(constants)) addrNote = '（含局域网地址，仅模拟器测试用）';
+  addrNote = addr
+    ? '模拟器走电脑服务 ' + addr + '，真机全离线' + addrNote
+    : '未配置模拟器测试地址；真机全离线，无需地址';
 } catch (e) {
   leftover = 'constants.js 读取失败';
 }
-check('零后端配置确认', !leftover, leftover || '无远程地址，图片/视频全离线');
+check('视频双链路配置确认', !leftover, leftover || addrNote);
 
 /* ---------------- 4. 后备服务（可选） ---------------- */
 

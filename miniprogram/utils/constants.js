@@ -10,8 +10,21 @@
  * 没有任何需要部署前修改的地址，其它常量都是业务配置。
  */
 
-// 兼容旧引用：util.js 在把「相对路径」补全成完整地址时会用到（现已无远程地址）
-const API_BASE_URL = '';
+// ============================================================
+// 视频处理双链路
+//   真机：全离线（utils/local-video.js），不需要任何地址
+//   开发者工具模拟器：MediaRecorder 是空壳，只能走电脑上的
+//   video-service-lite 处理（双击 start-video-service.bat 启动）
+// ============================================================
+
+// 模拟器测试用的电脑服务地址；真机完全不使用它
+const VIDEO_API_BASE_URL = 'http://127.0.0.1:3100';
+
+// 与 video-service-lite/.env 的 CLIENT_TOKEN 保持一致；两边都留空则不校验
+const VIDEO_CLIENT_TOKEN = '';
+
+// 兼容旧引用：util.js 在把「相对路径」补全成完整地址时会用到
+const API_BASE_URL = VIDEO_API_BASE_URL;
 // ============================================================
 
 // 视频限制（原先是后台可配项，零后台后固化为本地常量）
@@ -63,6 +76,8 @@ const TOOL = { BRUSH: 'brush', RECT: 'rect', CROP: 'crop' };
 
 module.exports = {
   API_BASE_URL,
+  VIDEO_API_BASE_URL,
+  VIDEO_CLIENT_TOKEN,
   VIDEO_LIMITS,
   JOB_TYPE,
   JOB_STATUS,

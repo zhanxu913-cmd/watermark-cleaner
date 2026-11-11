@@ -2,6 +2,7 @@ const app = getApp();
 const image = require('../../utils/image');
 const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
+const videoRemote = require('../../services/video-remote');
 const jobApi = require('../../services/job');
 const { MODE, MODE_DESC } = require('../../utils/constants');
 const { toast, clamp, formatDuration, humanDuration } = require('../../utils/util');
@@ -92,7 +93,7 @@ Page({
       spanText: humanDuration(duration),
       tlMidText: '已选 ' + humanDuration(duration) + ' · 已暂停',
       queueHint: simulator
-        ? '开发者工具不支持本功能的调试，请点工具栏「真机调试」或「预览」在手机上处理。'
+        ? '模拟器测试：画面经电脑上的 video-service-lite 处理（需先双击 start-video-service.bat 启动）。真机上则为全离线处理。'
         : supported
         ? '全离线处理：不联网、不上传，约需 ' +
           Math.max(10, Math.round(duration * 1.2)) +
@@ -102,9 +103,21 @@ Page({
         : '',
       modeOptions: [],
       // 模拟器 / 机型不支持时提交按钮给出明确指引
-      videoServiceEnabled: !simulator && supported,
+      videoServiceEnabled: !simulator ? supported : true,
       simulator
     });
+
+    // 模拟器：探测电脑服务是否已启动，没启动就提前告知
+    if (simulator) {
+      videoRemote.serviceAvailable().then((ok) => {
+        if (!ok) {
+          this.setData({
+            queueHint:
+              '电脑上的视频服务未启动。请先双击桌面 start-video-service.bat（或项目内 video-service-lite 目录运行 npm start），再重新提交。'
+          });
+        }
+      });
+    }
   },
 
   onReady() {
@@ -640,16 +653,7 @@ Page({
 
   async submit() {
     if (this.data.submitting) return;
-    if (this.data.simulator || localVideo.isSimulator()) {
-      return wx.showModal({
-        title: '请用手机处理',
-        content:
-          '开发者工具不支持视频去水印的调试。请点工具栏「真机调试」或「预览」扫码，在手机上完成处理。',
-        showCancel: false,
-        confirmColor: '#185FA5'
-      });
-    }
-    if (!localVideo.isSupported()) {
+    if (!localVideo.isSupported() && !this.data.simulator) {
       return toast('这台手机的微信版本较低，请升级微信后重试');
     }
     if (this.data.endSec - this.data.startSec < MIN_SPAN) {
@@ -693,12 +697,15 @@ Page({
     }
 
     try {
-      // 全离线处理：解码 → 抹水印 → 录制 → 合并音轨，全程不联网
-      const result = await localVideo.processVideo({
+      // 双链路：模拟器 → 电脑 video-service-lite；真机 → 全离线处理
+      const runner = this.data.simulator ? videoRemote.processVideoRemote : localVideo.processVideo;
+      const result = await runner({
         src: this.data.src,
         mode: this.data.mode,
         region: this.data.region,
         timeRange: { start: this.data.startSec, end: this.data.endSec },
+        duration: this.data.duration,
+        fileName: this.data.fileName,
         onProgress: (pct, label) => {
           this.setData({ progress: Math.min(96, pct), progressLabel: label || '处理中' });
         }
