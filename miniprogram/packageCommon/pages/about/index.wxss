@@ -82,3 +82,10 @@
   line-height: 1.75;
   margin-top: 10rpx;
 }
+
+.build-tag {
+  text-align: center;
+  font-size: 22rpx;
+  color: #b4b2a9;
+  margin: 24rpx 0 8rpx;
+}

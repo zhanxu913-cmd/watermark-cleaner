@@ -1,7 +1,9 @@
 const app = getApp();
+const { BUILD_TAG } = require('../../../utils/constants');
 
 Page({
   data: {
+    build: BUILD_TAG,
     steps: [
       {
         n: '1',

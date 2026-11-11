@@ -58,6 +58,8 @@
       </view>
     </view>
 
+    <view class="build-tag">构建版本 {{build}}</view>
+
     <view class="page-bottom-hold"></view>
   </view>
 </view>

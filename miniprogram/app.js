@@ -25,6 +25,33 @@ App({
   onLaunch() {
     this._listeners = [];
     this.readSystemInfo();
+    console.log('[app] build', require('./utils/constants').BUILD_TAG);
+  },
+
+  /* ---------------- 兜底提示 ----------------
+   * 目的：任何未捕获的异常/被拒绝的 Promise 都要让用户看见。
+   * 之前「点了没反应」很可能就是异步异常被吞掉导致的静默失败。
+   */
+  _reportError(msg) {
+    const now = Date.now();
+    if (this._lastErrAt && now - this._lastErrAt < 2000) return; // 2 秒内只提示一次，避免刷屏
+    this._lastErrAt = now;
+    try {
+      wx.showToast({ title: '出错了：' + String(msg || '未知错误').slice(0, 40), icon: 'none', duration: 2500 });
+    } catch (e) {
+      /* 忽略 */
+    }
+  },
+
+  onError(err) {
+    console.error('[运行错误]', err);
+    this._reportError(err);
+  },
+
+  onUnhandledRejection(res) {
+    const reason = res && res.reason;
+    console.error('[未处理的异步异常]', reason);
+    this._reportError((reason && (reason.message || reason.errMsg)) || reason);
   },
 
   /* ---------------- 系统信息 ---------------- */

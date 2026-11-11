@@ -122,6 +122,10 @@ if (IS_DEVTOOLS) {
 const QUOTA_FREE = 3; // 新用户免费视频下载额度
 const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
 
+// 构建标记：每次发版前更新一次。关于页底部与启动日志会打印，
+// 用来确认手机/电脑跑的是不是最新上传的代码（排查「改了没生效」最直接的办法）。
+const BUILD_TAG = '2026-11-11 17:00';
+
 module.exports = {
   API_BASE_URL,
   VIDEO_API_BASE_URL,
@@ -136,6 +140,7 @@ module.exports = {
   TOOL,
   AD_UNITS,
   IS_DEVTOOLS,
+  BUILD_TAG,
   QUOTA_FREE,
   QUOTA_PER_AD
 };

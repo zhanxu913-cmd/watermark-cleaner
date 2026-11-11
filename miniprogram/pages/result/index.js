@@ -456,28 +456,35 @@ Page({
   },
 
   async save() {
-    console.log('[保存] 结果页点击已触发, canSave=', this.data.canSave, ', saving=', this.data.saving, ', isVideo=', this.data.isVideo);
     if (this.data.saving) return toast('正在保存，请稍候');
     if (!this.data.canSave) {
       return toast(this.data.outUrl ? '结果还没准备好，请稍候' : '暂无可保存的结果文件');
     }
-    if (!(await this.ensureVideoQuota())) return;
+
+    // 先落一个可见状态：按钮文案与底部状态行立刻变化，
+    // 让用户（以及我们排查时）马上知道「点击确实收到了」
+    this.setData({ saving: true, progressText: '检查下载额度…' });
 
     // 电脑（开发者工具）自测：相册是模拟的，改为另存到电脑，能立刻播放验证声音与画面
     const devtools = isDevtools();
-    if (!devtools) {
-      const authed = await ensureAlbumAuth();
-      if (!authed) return toast('未获得相册权限，无法保存');
-    }
 
-    this.pauseAll();
-    this.setData({ saving: true, progressText: '' });
     try {
+      if (!(await this.ensureVideoQuota())) return;
+
+      if (!devtools) {
+        this.setData({ progressText: '检查相册权限…' });
+        const authed = await ensureAlbumAuth();
+        if (!authed) return toast('未获得相册权限，无法保存');
+      }
+
+      this.pauseAll();
+      this.setData({ progressText: '准备文件…' });
+
       const filePath = await this.grabFile();
       const type = this.data.isVideo ? 'video' : 'image';
       const name = defaultFileName(type, this.data.outUrl, this.data.fileName);
       const named = await renameLocalFile(filePath, name);
-      this.setData({ savedName: name });
+      this.setData({ savedName: name, progressText: devtools ? '保存到电脑…' : '保存到相册…' });
 
       let where = '相册';
       if (devtools) {
@@ -500,7 +507,8 @@ Page({
         jobApi.markSaved(this.jobId).catch(() => {});
       }
     } catch (e) {
-      toast(e.message || '保存失败，请重试');
+      console.error('[保存] 失败:', e);
+      toast((e && e.message) || '保存失败，请重试');
     } finally {
       this.setData({ saving: false, progressText: '' });
     }
