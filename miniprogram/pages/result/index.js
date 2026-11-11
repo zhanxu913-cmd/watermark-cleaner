@@ -4,6 +4,7 @@ const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
 const { MODE_LABEL, JOB_STATUS_LABEL, AD_UNITS, QUOTA_ENABLED } = require('../../utils/constants');
 const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt, isDevtools, saveToDisk } = require('../../utils/util');
+const trace = require('../../utils/trace');
 
 const POLL_INTERVAL = 3000;
 
@@ -62,6 +63,8 @@ Page({
     this._timer = null;
     this._syncTimer = null;
     this._lastProgress = -1;
+    trace.trace('page', '结果页 onLoad');
+    trace.trace('page', '保存按钮会同时打 touchstart 与 tap');
     this.load();
   },
 
@@ -457,10 +460,28 @@ Page({
     this.setData({ quotaCount: quota.get() });
   },
 
-  /** 临时排查：把当前步骤同时打到控制台和屏幕上 */
+  /**
+   * 临时排查：把当前步骤同时打到控制台、本机存储（关于 → 点击追踪）和屏幕
+   */
   mark(msg) {
-    console.log('[保存]', msg);
+    trace.trace('save', msg);
     this.setData({ dbg: msg });
+  },
+
+  /**
+   * 手指刚按下：只打点，不做业务。
+   * 若这条日志有、下面 tap 那条没有 → 事件被上层元素/原生组件拦掉了。
+   */
+  onSaveTouchStart() {
+    this._tapSeq = (this._tapSeq || 0) + 1;
+    trace.trace('touch', '保存按钮 touchstart #' + this._tapSeq);
+    this.setData({ dbg: '👆 已按到保存按钮（第 ' + this._tapSeq + ' 次）' });
+  },
+
+  /** 保存按钮点击入口：先打点，再走业务流程 */
+  onSaveTap() {
+    trace.trace('tap', '保存按钮 tap');
+    this.save();
   },
 
   async save() {
@@ -708,12 +729,14 @@ Page({
   },
 
   again() {
+    trace.trace('tap', '「再处理」被点击');
     const isVideo = this.data.isVideo;
     app.globalData.pending = { autoPick: isVideo ? 'video' : 'image' };
     wx.switchTab({ url: '/pages/index/index' });
   },
 
   goRecords() {
+    trace.trace('tap', '「查看记录」被点击');
     app.globalData.pending = {};
     wx.switchTab({ url: '/pages/records/index' });
   },

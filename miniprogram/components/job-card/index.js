@@ -1,5 +1,6 @@
 const { MODE_LABEL, JOB_STATUS_LABEL } = require('../../utils/constants');
 const { relativeTime, formatSize, formatDuration, extLabel, guessExt } = require('../../utils/util');
+const trace = require('../../utils/trace');
 
 const BADGE_BY_STATUS = {
   done: 'badge-ok',
@@ -83,7 +84,9 @@ Component({
       this.triggerEvent('longpress', { job: this.data.job });
     },
     onDownload() {
-      this.triggerEvent('download', { job: this.data.job });
+      const job = this.data.job;
+      trace.trace('tap', '记录卡片「下载」被点击 · id=' + ((job && job.id) || '-'));
+      this.triggerEvent('download', { job });
     }
   }
 });

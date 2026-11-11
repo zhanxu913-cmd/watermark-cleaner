@@ -237,7 +237,11 @@
         <view class="btn-ghost" bindtap="goRecords">查看记录</view>
       </view>
       <view class="btn-row mt-16">
-        <view class="btn-primary {{saving ? 'disabled' : ''}}" bindtap="save">
+        <view
+          class="btn-primary {{saving ? 'disabled' : ''}}"
+          bindtouchstart="onSaveTouchStart"
+          bindtap="onSaveTap"
+        >
           {{saving ? '保存中…' : '保存到相册'}}
         </view>
       </view>

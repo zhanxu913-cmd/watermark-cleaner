@@ -1,6 +1,7 @@
 const app = getApp();
 const { BUILD_TAG } = require('../../../utils/constants');
 const rewardAd = require('../../../services/reward-ad');
+const trace = require('../../../utils/trace');
 
 Page({
   data: {
@@ -8,6 +9,8 @@ Page({
     diag: null,
     testing: false,
     showDiag: false,
+    showTrace: false,
+    traceLines: [],
     steps: [
       {
         n: '1',
@@ -65,6 +68,7 @@ Page({
 
   onShow() {
     this.refreshDiag();
+    if (this.data.showTrace) this.refreshTrace();
   },
 
   /** 刷新广告诊断信息 */
@@ -104,6 +108,27 @@ Page({
   clearDiag() {
     rewardAd.clearDiagLogs();
     this.refreshDiag();
+  },
+
+  /* ---------- 点击追踪 ---------- */
+
+  refreshTrace() {
+    const list = trace.lines();
+    this.setData({
+      traceLines: list.length ? list : ['（暂无记录，去点一下下载按钮再回来）']
+    });
+  },
+
+  toggleTrace() {
+    const next = !this.data.showTrace;
+    this.setData({ showTrace: next }, () => {
+      if (next) this.refreshTrace();
+    });
+  },
+
+  clearTrace() {
+    trace.clear();
+    this.refreshTrace();
   },
 
   goPrivacy() {

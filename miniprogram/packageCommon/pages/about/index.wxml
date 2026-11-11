@@ -82,6 +82,28 @@
       </view>
     </view>
 
+    <!-- 点击追踪（临时排查：判断点击有没有到达 JS） -->
+    <view class="sect">
+      <view class="t-card mb">点击追踪</view>
+      <view class="card">
+        <view class="row-item" bindtap="toggleTrace">
+          <view class="row-k">查看点击链路日志</view>
+          <view class="row-r"><text class="arrow">{{showTrace ? '收起' : '展开'}}</text></view>
+        </view>
+
+        <block wx:if="{{showTrace}}">
+          <view class="dg-tip">点过按钮后回到这里就能看到记录：有 [touch] 无 [tap] 说明事件被拦，两条都没有说明按钮被盖住。</view>
+          <view class="dg-logs">
+            <view class="dg-log" wx:for="{{traceLines}}" wx:key="index">{{item}}</view>
+          </view>
+          <view class="dg-actions">
+            <view class="dg-btn" bindtap="refreshTrace">刷新</view>
+            <view class="dg-btn ghost" bindtap="clearTrace">清空</view>
+          </view>
+        </block>
+      </view>
+    </view>
+
     <!-- 隐私入口 -->
     <view class="sect">
       <view class="card">
