@@ -3,6 +3,7 @@ const jobApi = require('../../services/job');
 const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
 const { toast, confirm, debounce, ensureAlbumAuth, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt, isDevtools, saveToDisk } = require('../../utils/util');
+const { QUOTA_ENABLED } = require('../../utils/constants');
 
 const FILTERS = [
   { key: 'all', label: '全部' },
@@ -362,7 +363,7 @@ Page({
       } else {
         await saveImage(named);
       }
-      if (job.type === 'video') quota.consume(1); // 视频保存成功才扣 1 条
+      if (job.type === 'video' && QUOTA_ENABLED) quota.consume(1); // 额度闸门开启时，保存成功才扣 1 条
       this.mark('⑥ 写入完成: ' + where);
       wx.hideLoading();
       toast('已保存到' + where + '：' + name + '（' + fmt + '）', 'success');

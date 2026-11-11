@@ -2,7 +2,7 @@ const app = getApp();
 const jobApi = require('../../services/job');
 const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
-const { MODE_LABEL, JOB_STATUS_LABEL, AD_UNITS } = require('../../utils/constants');
+const { MODE_LABEL, JOB_STATUS_LABEL, AD_UNITS, QUOTA_ENABLED } = require('../../utils/constants');
 const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt, isDevtools, saveToDisk } = require('../../utils/util');
 
 const POLL_INTERVAL = 3000;
@@ -451,6 +451,7 @@ Page({
 
   /** 下载成功后扣 1 条额度（视频专属；图片免费不扣） */
   consumeVideoQuota() {
+    if (!QUOTA_ENABLED) return; // 额度闸门关闭时不扣额度
     if (!this.data.isVideo) return;
     quota.consume(1);
     this.setData({ quotaCount: quota.get() });

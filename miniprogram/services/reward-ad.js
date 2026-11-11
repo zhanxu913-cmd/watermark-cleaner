@@ -16,7 +16,7 @@
 
 'use strict';
 
-const { AD_UNITS, QUOTA_PER_AD, IS_DEVTOOLS } = require('../utils/constants');
+const { AD_UNITS, QUOTA_PER_AD, QUOTA_ENABLED, IS_DEVTOOLS } = require('../utils/constants');
 const quota = require('../utils/quota');
 const { toast } = require('../utils/util');
 
@@ -164,6 +164,8 @@ function bumpDailyCount() {
  * 静默执行，失败不影响页面功能。
  */
 function preload() {
+  // 额度闸门关闭时不会展示激励视频，无需预拉取
+  if (!QUOTA_ENABLED) return;
   try {
     if (typeof wx.createRewardedVideoAd !== 'function' || !isConfigured()) return;
     const ad = getAd();
@@ -273,6 +275,8 @@ function showRewardedAd() {
  * @returns {Promise<boolean>} true = 可以继续下载
  */
 async function ensureQuota() {
+  // 总开关关闭：下载不校验额度、不弹广告，直接放行
+  if (!QUOTA_ENABLED) return true;
   try {
     return await ensureQuotaInner();
   } catch (e) {
