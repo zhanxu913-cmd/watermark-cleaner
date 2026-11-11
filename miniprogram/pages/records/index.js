@@ -275,8 +275,18 @@ Page({
   // 单条下载：点卡片右下角「下载」（视频存相册，图片存相册）
   async onCardDownload(e) {
     console.log('[下载] 记录页点击已触发, job=', e && e.detail && e.detail.job && e.detail.job.id);
+    try {
+      await this._doCardDownload(e);
+    } catch (err) {
+      // 兜底：任何异常都要给用户可见提示，绝不静默
+      console.error('[下载] 异常:', err);
+      toast((err && err.message) || '下载失败，请重试');
+    }
+  },
+
+  async _doCardDownload(e) {
     const job = e.detail && e.detail.job;
-    if (!job) return console.warn('[下载] 未取到 job，事件数据异常');
+    if (!job) return toast('记录数据异常，请返回重新进入');
     if (job.status !== 'done') return toast('该记录还没有可下载的结果');
 
     // 视频下载走额度闸门：图片免费直接放行

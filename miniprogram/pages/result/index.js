@@ -457,7 +457,7 @@ Page({
 
   async save() {
     console.log('[保存] 结果页点击已触发, canSave=', this.data.canSave, ', saving=', this.data.saving, ', isVideo=', this.data.isVideo);
-    if (this.data.saving) return;
+    if (this.data.saving) return toast('正在保存，请稍候');
     if (!this.data.canSave) {
       return toast(this.data.outUrl ? '结果还没准备好，请稍候' : '暂无可保存的结果文件');
     }

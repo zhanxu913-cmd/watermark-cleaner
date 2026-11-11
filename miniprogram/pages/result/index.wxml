@@ -216,20 +216,21 @@
         </view>
       </view>
 
-      <view class="page-bottom-hold"></view>
-    </view>
-
-    <!-- 底部操作 -->
-    <view wx:if="{{status === 'done'}}" class="bottom-bar">
-      <view wx:if="{{progressText}}" class="dl-progress">{{progressText}}</view>
-      <!-- 底部 Banner 广告：不遮挡内容，失败静默 -->
-      <view wx:if="{{bannerResultId}}" class="banner-slot">
+      <!-- 底部 Banner 广告：放在内容流末尾，不遮挡任何操作按钮 -->
+      <view wx:if="{{bannerResultId}}" class="sect banner-slot">
         <ad
           unit-id="{{bannerResultId}}"
           ad-intervals="60"
           binderror="onBannerError"
         />
       </view>
+
+      <view class="page-bottom-hold"></view>
+    </view>
+
+    <!-- 底部操作 -->
+    <view wx:if="{{status === 'done'}}" class="bottom-bar">
+      <view wx:if="{{progressText}}" class="dl-progress">{{progressText}}</view>
       <view class="btn-row">
         <view class="btn-ghost" bindtap="again">{{isVideo ? '再处理视频' : '再处理图片'}}</view>
         <view class="btn-ghost" bindtap="goRecords">查看记录</view>
