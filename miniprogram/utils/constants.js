@@ -85,7 +85,7 @@ const TOOL = { BRUSH: 'brush', RECT: 'rect', CROP: 'crop' };
 //             Banner 广告位为空时不渲染。
 // ============================================================
 const AD_UNITS = {
-  REWARDED: '', // 激励视频：视频下载额度解锁
+  REWARDED: 'adunit-db3a55f2d766cf28', // 激励视频：视频下载额度解锁
   BANNER_HOME: '', // Banner：首页底部
   BANNER_IMAGE: '' // Banner：图片编辑页底部
 };
