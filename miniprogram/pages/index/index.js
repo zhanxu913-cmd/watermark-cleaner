@@ -3,7 +3,6 @@ const jobApi = require('../../services/job');
 const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
 const rewardAd = require('../../services/reward-ad');
-const contentGuard = require('../../utils/content-guard');
 const { VIDEO_LIMITS, AD_UNITS } = require('../../utils/constants');
 const { toast } = require('../../utils/util');
 
@@ -28,8 +27,6 @@ Page({
     if (this._jobVersion !== app.globalData.version.job) this.loadRecent();
     this.consumeAutoPick();
     this.checkVideoSupport();
-    // 内容安全：首次进入需确认「禁止处理违法违规内容」的使用规范
-    contentGuard.ensureAgreed();
   },
 
   /** Banner 广告加载成功（官方事件，与官方示例的 adLoad 对应） */
@@ -50,7 +47,7 @@ Page({
     if (ok !== this.data.videoServiceEnabled) {
       this.setData({
         videoServiceEnabled: ok,
-        videoHint: ok ? '框选区域 + 时间区间，离线处理' : '微信版本过低，暂不支持'
+        videoHint: ok ? '框选区域 + 时间区间' : '微信版本过低，暂不支持'
       });
     }
   },
@@ -115,7 +112,7 @@ Page({
   refreshStorage() {
     try {
       const s = localdb.stats();
-      this.setData({ storageText: '记录保存在本机 · 已占 ' + s.bytesText });
+      this.setData({ storageText: '已用空间 ' + s.bytesText });
     } catch (e) {
       /* 统计失败不影响主流程 */
     }

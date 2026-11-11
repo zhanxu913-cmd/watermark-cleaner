@@ -135,11 +135,6 @@
   padding: 16rpx 32rpx 0;
 }
 
-/* 操作提示：与广告位之间收紧间距 */
-.panel-tip {
-  padding-top: 12rpx;
-}
-
 .hl {
   color: #0f6e56;
   font-weight: 500;
@@ -376,4 +371,14 @@
    避免按钮悬在页面中间、下方留一大块空白 */
 .editor .bottom-bar {
   margin-top: auto;
+}
+
+/* ============ 内容安全提示 ============ */
+
+.sec-tip {
+  padding: 12rpx 40rpx 8rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #8a8a80;
+  text-align: center;
 }

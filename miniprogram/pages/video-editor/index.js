@@ -4,7 +4,6 @@ const localdb = require('../../utils/localdb');
 const localVideo = require('../../utils/local-video');
 const videoRemote = require('../../services/video-remote');
 const jobApi = require('../../services/job');
-const contentGuard = require('../../utils/content-guard');
 const { MODE, MODE_DESC, AD_UNITS, IS_DEVTOOLS } = require('../../utils/constants');
 const { toast, clamp, formatDuration, humanDuration } = require('../../utils/util');
 
@@ -728,10 +727,6 @@ Page({
     this.pauseVideo();
     this._cancelled = false;
 
-    // 内容安全：确认使用规范；将来接入检测接口后，违规素材在此被拦下
-    const allowed = await contentGuard.beforeProcess([this.data.src]);
-    if (!allowed) return;
-
     // 视频处理不消耗额度；额度在结果页「下载/保存」时校验
     this.setData({ submitting: true, cancelling: false, progress: 2, progressLabel: '准备处理' });
 
@@ -767,7 +762,7 @@ Page({
       });
     } catch (e) {
       this.setData({ submitting: false, progress: 0, progressLabel: '' });
-      return toast('写入记录失败，请检查本机存储空间');
+      return toast('写入记录失败，请检查手机存储空间');
     }
 
     try {
@@ -788,9 +783,9 @@ Page({
       });
 
       // 成品落盘到持久目录（tempFilePath 重启即失效）
-      this.setData({ progress: 97, progressLabel: '保存到本机' });
+      this.setData({ progress: 97, progressLabel: '生成结果' });
       const outPath = localdb.persistFile(result.tempFilePath, 'output', 'mp4');
-      if (!outPath) throw new Error('保存成品失败，请检查本机存储空间');
+      if (!outPath) throw new Error('保存成品失败，请检查手机存储空间');
 
       await jobApi.update(rec.id, {
         status: 'done',

@@ -77,12 +77,8 @@
     </view>
   </view>
 
-  <!-- 框选操作提示（处理方式固定为智能去水印，不再单列一行） -->
-  <view class="panel panel-tip">
-    <view class="notice plain">
-      <view class="notice-tx">空白处拖动加框，最多 4 个；点框可拖动/缩放/删除。已选 {{regions.length}} 个。</view>
-    </view>
-  </view>
+  <!-- 内容安全提示（审核要求：明确提示不得含违规信息） -->
+  <view class="sec-tip">请确保素材与对外发布的内容均不含违法违规信息。</view>
 
   <view class="bottom-bar">
     <view

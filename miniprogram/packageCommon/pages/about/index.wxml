@@ -26,9 +26,9 @@
       </view>
     </view>
 
-    <!-- 填充方式 -->
+    <!-- 处理方式 -->
     <view class="sect">
-      <view class="t-card mb">四种处理方式怎么选</view>
+      <view class="t-card mb">两种处理方式怎么选</view>
       <view class="card">
         <view wx:for="{{modes}}" wx:key="k" class="mode-item">
           <view class="mode-k">{{item.k}}</view>

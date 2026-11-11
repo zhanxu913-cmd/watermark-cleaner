@@ -206,7 +206,7 @@
       <view wx:if="{{status === 'done'}}" class="sect">
         <view class="notice ok">
           <view class="notice-bar"></view>
-          <view class="notice-tx">{{isVideo ? '视频处理全程在本机完成；保存到相册的文件长期保留。' : '处理全程在你的设备上完成，保存到相册即可长期保留。'}}</view>
+          <view class="notice-tx">{{isVideo ? '视频已处理完成，保存到相册的文件长期保留。' : '图片已处理完成，保存到相册即可长期保留。'}}</view>
         </view>
       </view>
 

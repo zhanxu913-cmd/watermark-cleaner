@@ -266,7 +266,7 @@ Page({
     const ids = this.data.selectedIds;
     if (!ids.length) return toast('请先选择要删除的记录');
 
-    const ok = await confirm('将删除 ' + ids.length + ' 条记录及本机文件，此操作不可恢复，确定吗？');
+    const ok = await confirm('将删除 ' + ids.length + ' 条记录及相关文件，此操作不可恢复，确定吗？');
     if (!ok) return;
 
     jobApi
@@ -347,7 +347,7 @@ Page({
           const msg = (e && e.message) || '';
           if (msg.indexOf('cancel') > -1 || msg.indexOf('取消') > -1) {
             // 用户在另存对话框点了取消：视为主动放弃，不算失败
-            this.mark('已取消另存（文件保留在小程序本地）');
+            this.mark('已取消另存（文件已生成，可重试）');
             wx.hideLoading();
             toast('已取消保存，文件保留在小程序内', 'none');
             return;
@@ -356,7 +356,7 @@ Page({
           wx.hideLoading();
           wx.showModal({
             title: '保存到电脑失败',
-            content: '原因：' + msg + '\n\n文件已生成在小程序本地目录，可重试另存。',
+            content: '原因：' + msg + '\n\n文件已生成，可重试另存。',
             showCancel: false,
             confirmColor: '#185FA5'
           });
@@ -379,7 +379,7 @@ Page({
   },
 
   async clearAll() {
-    const ok = await confirm('确定清空全部处理记录吗？本机文件会一并删除，此操作不可恢复。');
+    const ok = await confirm('确定清空全部处理记录吗？相关文件会一并删除，此操作不可恢复。');
     if (!ok) return;
 
     jobApi

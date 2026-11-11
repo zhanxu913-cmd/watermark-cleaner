@@ -76,22 +76,10 @@
       />
     </view>
 
-    <view wx:if="{{tool !== 'crop'}}" class="mode-wrap">
-      <view class="field-label">
-        <text>处理方式</text>
-        <text class="mode-desc">智能去水印</text>
-      </view>
-      <view class="notice plain">
-        <view class="notice-tx">按水印周围的画面自动推算填充，无需选择，效果最好。</view>
-      </view>
-    </view>
-
-    <view wx:else class="mode-wrap">
-      <view class="notice plain">
-        <view class="notice-tx">拖动白框调整保留范围。裁剪是无损操作，画质不下降。</view>
-      </view>
-    </view>
   </view>
+
+  <!-- 内容安全提示（审核要求：明确提示不得含违规信息） -->
+  <view class="sec-tip">请确保素材与对外发布的内容均不含违法违规信息。</view>
 
   <!-- 底部 Banner 广告（广告位未配置时不渲染） -->
   <view wx:if="{{bannerImageId}}" class="ad-wrap">
@@ -121,7 +109,7 @@
         <view class="bar-in" style="width:{{progress}}%"></view>
       </view>
       <view class="mask-pct">{{progress}}%</view>
-      <view class="mask-tip">本地处理 · 原图不会离开你的手机</view>
+      <view class="mask-tip">处理中，请稍候</view>
     </view>
   </view>
 

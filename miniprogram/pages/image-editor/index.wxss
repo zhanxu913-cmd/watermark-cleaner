@@ -95,10 +95,6 @@
   margin: 0 0 0 -8rpx;
 }
 
-.mode-wrap {
-  margin-top: 24rpx;
-}
-
 .mode-desc {
   max-width: 420rpx;
   overflow: hidden;
@@ -178,4 +174,14 @@
 /* 底部 Banner 广告 */
 .ad-wrap {
   padding: 8rpx 24rpx 0;
+}
+
+/* ============ 内容安全提示 ============ */
+
+.sec-tip {
+  padding: 12rpx 40rpx 0;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #8a8a80;
+  text-align: center;
 }

@@ -15,7 +15,7 @@
         </view>
         <view class="flex-1">
           <view class="entry-tt">图片去水印</view>
-          <view class="entry-dd">涂抹 / 框选 / 裁剪 · 本地处理</view>
+          <view class="entry-dd">涂抹 / 框选 / 裁剪</view>
         </view>
         <view class="entry-go entry-go-blue">›</view>
       </view>
@@ -97,11 +97,6 @@
           desc="从上方选一张图片开始"
         />
       </view>
-    </view>
-
-    <!-- 内容安全提示：明确告知违规内容不予处理 -->
-    <view class="sec-note">
-      禁止处理色情低俗、暴力血腥、恐怖主义、赌博诈骗等违法违规内容；如检测到违规内容，将提示「该内容含违规信息」并拒绝处理。
     </view>
 
     <view class="foot-note" bindtap="goAbout">使用说明与隐私政策 ›</view>

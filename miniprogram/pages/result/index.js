@@ -538,14 +538,14 @@ Page({
           const msg = (e && e.message) || '';
           if (msg.indexOf('cancel') > -1 || msg.indexOf('取消') > -1) {
             // 用户在另存对话框点了取消：视为主动放弃，不算失败
-            this.mark('已取消另存（文件保留在小程序本地）');
+            this.mark('已取消另存（文件已生成，可重试）');
             toast('已取消保存，文件保留在小程序内', 'none');
             return;
           }
           this.mark('✗ 另存失败: ' + msg);
           wx.showModal({
             title: '保存到电脑失败',
-            content: '原因：' + msg + '\n\n文件已生成在小程序本地目录，可重试另存。',
+            content: '原因：' + msg + '\n\n文件已生成，可重试另存。',
             showCancel: false,
             confirmColor: '#185FA5'
           });

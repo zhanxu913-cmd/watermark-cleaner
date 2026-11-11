@@ -7,7 +7,7 @@
       <view class="avatar avatar-ph"></view>
       <view class="flex-1">
         <view class="user-name">全能AI去水印</view>
-        <view class="user-sub">记录与文件只存在这台手机</view>
+        <view class="user-sub">图片 / 视频去水印工具</view>
       </view>
     </view>
 
@@ -23,7 +23,7 @@
         <view class="row-r">{{recordText}} <text class="arrow">›</text></view>
       </view>
       <view class="row-item" bindtap="clearCache">
-        <view class="row-k">清空本地记录</view>
+        <view class="row-k">清空处理记录</view>
         <view class="row-r">{{cacheText}} <text class="arrow">›</text></view>
       </view>
       <view class="row-item" bindtap="goNotice">
