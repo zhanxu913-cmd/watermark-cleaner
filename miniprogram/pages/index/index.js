@@ -29,6 +29,12 @@ Page({
     this.checkVideoSupport();
   },
 
+  /** Banner 广告加载成功（官方事件，与官方示例的 adLoad 对应） */
+  onAdLoad() {},
+
+  /** Banner 广告被用户关闭（官方事件） */
+  onAdClose() {},
+
   /** Banner 广告加载失败：静默，不影响页面功能 */
   onAdError() {},
 

@@ -103,7 +103,13 @@
 
     <!-- 首页底部 Banner 广告（广告位未配置时不渲染） -->
     <view wx:if="{{bannerHomeId}}" class="ad-wrap">
-      <ad unit-id="{{bannerHomeId}}" ad-intervals="60" binderror="onAdError" />
+      <ad
+        unit-id="{{bannerHomeId}}"
+        ad-intervals="60"
+        bindload="onAdLoad"
+        binderror="onAdError"
+        bindclose="onAdClose"
+      />
     </view>
 
     <view class="page-bottom-hold"></view>

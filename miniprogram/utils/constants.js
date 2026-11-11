@@ -91,8 +91,8 @@ const TOOL = { BRUSH: 'brush', RECT: 'rect', CROP: 'crop' };
 // ============================================================
 const AD_UNITS = {
   REWARDED: 'adunit-db3a55f2d766cf28', // 激励视频：视频下载额度解锁
-  BANNER_HOME: '', // ← 在这里粘贴首页 Banner 广告位 ID
-  BANNER_IMAGE: '' // ← 在这里粘贴图片页 Banner 广告位 ID
+  BANNER_HOME: 'adunit-cf46acd2d060f865', // ← 首页底部 Banner 广告位
+  BANNER_IMAGE: 'adunit-cf46acd2d060f865' // ← 图片页底部 Banner 广告位（同 ID 复用；后台新建独立位后可替换分开统计）
 };
 const QUOTA_FREE = 3; // 新用户免费视频下载额度
 const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
