@@ -795,7 +795,7 @@ Page({
         height: result.height,
         duration: result.duration || this.data.duration,
         // 记录成品是否带声音，结果页据此提示「原视频本身无音轨」
-        hasAudio: result.hasAudio !== false
+        hasAudio: result.hasAudio === true
       });
       app.bumpJob();
 

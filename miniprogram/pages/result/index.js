@@ -2,7 +2,7 @@ const app = getApp();
 const jobApi = require('../../services/job');
 const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
-const { MODE_LABEL, JOB_STATUS_LABEL, AD_UNITS, QUOTA_ENABLED } = require('../../utils/constants');
+const { MODE_LABEL, JOB_STATUS_LABEL, AD_UNITS, QUOTA_ENABLED, DEBUG_UI } = require('../../utils/constants');
 const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt, isDevtools, saveToDisk } = require('../../utils/util');
 const trace = require('../../utils/trace');
 
@@ -464,11 +464,12 @@ Page({
   },
 
   /**
-   * 临时排查：把当前步骤同时打到控制台、本机存储（关于 → 点击追踪）和屏幕
+   * 排查打点：始终写入本机日志（关于 → 点击追踪），
+   * 只有 DEBUG_UI 为 true 时才同步显示在屏幕黑条上（线上默认关闭）。
    */
   mark(msg) {
     trace.trace('save', msg);
-    this.setData({ dbg: msg });
+    if (DEBUG_UI) this.setData({ dbg: msg });
   },
 
   /**
@@ -478,7 +479,7 @@ Page({
   onSaveTouchStart() {
     this._tapSeq = (this._tapSeq || 0) + 1;
     trace.trace('touch', '保存按钮 touchstart #' + this._tapSeq);
-    this.setData({ dbg: '👆 已按到保存按钮（第 ' + this._tapSeq + ' 次）' });
+    if (DEBUG_UI) this.setData({ dbg: '👆 已按到保存按钮（第 ' + this._tapSeq + ' 次）' });
   },
 
   /** 保存按钮点击入口：先打点，再走业务流程 */

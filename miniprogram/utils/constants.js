@@ -127,14 +127,20 @@ const QUOTA_FREE = 0; // 新用户不送免费额度（视频下载一律先看�
 const QUOTA_PER_AD = 3; // 每次完整看完激励视频解锁的下载次数
 
 // 视频下载额度闸门总开关：
-//   false = 下载不再需要看激励视频，也不扣额度（当前状态）
-//   true  = 恢复「额度用完看广告解锁」逻辑
+//   true  = 视频下载必须先看激励视频解锁额度（当前状态，线上必须是 true）
+//   false = 关掉闸门，下载不再需要看广告也不扣额度（仅在紧急止损时临时使用）
 // 关闭时 Banner 广告仍会展示，不受影响。
 const QUOTA_ENABLED = true;
 
+// 屏幕调试信息开关（result / records 页顶部的黑色步骤条）：
+//   false = 不在屏幕上显示，排查日志仍会写入本机（关于 → 点击追踪可查）
+//   true  = 在屏幕上显示「① 点击已收到」这类步骤，仅用于真机排障
+// 提审/发布必须保持 false —— 否则用户会一直看到一条调试黑条。
+const DEBUG_UI = false;
+
 // 构建标记：每次发版前更新一次。关于页底部与启动日志会打印，
 // 用来确认手机/电脑跑的是不是最新上传的代码（排查「改了没生效」最直接的办法）。
-const BUILD_TAG = '2026-11-11 17:52';
+const BUILD_TAG = '2026-11-11 17:58';
 
 module.exports = {
   API_BASE_URL,
@@ -150,6 +156,7 @@ module.exports = {
   TOOL,
   AD_UNITS,
   IS_DEVTOOLS,
+  DEBUG_UI,
   BUILD_TAG,
   QUOTA_ENABLED,
   QUOTA_FREE,

@@ -3,7 +3,7 @@ const jobApi = require('../../services/job');
 const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
 const { toast, confirm, debounce, ensureAlbumAuth, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt, isDevtools, saveToDisk } = require('../../utils/util');
-const { QUOTA_ENABLED } = require('../../utils/constants');
+const { QUOTA_ENABLED, DEBUG_UI } = require('../../utils/constants');
 const trace = require('../../utils/trace');
 
 const FILTERS = [
@@ -282,11 +282,12 @@ Page({
 
   // 单条下载：点卡片右下角「下载」（视频存相册，图片存相册）
   /**
-   * 临时排查：把当前步骤同时打到控制台、本机存储（关于 → 点击追踪）和屏幕
+   * 排查打点：始终写入本机日志（关于 → 点击追踪），
+   * 只有 DEBUG_UI 为 true 时才同步显示在屏幕黑条上（线上默认关闭）。
    */
   mark(msg) {
     trace.trace('save', msg);
-    this.setData({ dbg: msg });
+    if (DEBUG_UI) this.setData({ dbg: msg });
   },
 
   async onCardDownload(e) {
