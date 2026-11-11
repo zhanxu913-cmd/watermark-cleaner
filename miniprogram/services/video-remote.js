@@ -75,7 +75,8 @@ async function submitRemote(opts, onUploadProgress) {
 
   let body = null;
   try {
-    body = JSON.parse(res.data);
+    // uploadFile 恒返回字符串，但稳妥起见两种类型都兼容
+    body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
   } catch (e) {
     throw new Error('视频服务响应异常（HTTP ' + res.statusCode + '）');
   }
@@ -98,7 +99,8 @@ async function statusRemote(id) {
   });
   let body = null;
   try {
-    body = JSON.parse(res.data);
+    // wx.request 会把 JSON 响应自动解析成对象，字符串才需要手动 parse
+    body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
   } catch (e) {
     throw new Error('视频服务响应异常');
   }
