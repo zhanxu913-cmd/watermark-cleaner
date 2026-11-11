@@ -3,7 +3,7 @@ const jobApi = require('../../services/job');
 const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
 const { MODE_LABEL, JOB_STATUS_LABEL, AD_UNITS } = require('../../utils/constants');
-const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt } = require('../../utils/util');
+const { toast, formatSize, formatTime, ensureAlbumAuth, confirm, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt, isDevtools, saveToDisk } = require('../../utils/util');
 
 const POLL_INTERVAL = 3000;
 
@@ -463,8 +463,12 @@ Page({
     }
     if (!(await this.ensureVideoQuota())) return;
 
-    const authed = await ensureAlbumAuth();
-    if (!authed) return toast('未获得相册权限，无法保存');
+    // 电脑（开发者工具）自测：相册是模拟的，改为另存到电脑，能立刻播放验证声音与画面
+    const devtools = isDevtools();
+    if (!devtools) {
+      const authed = await ensureAlbumAuth();
+      if (!authed) return toast('未获得相册权限，无法保存');
+    }
 
     this.pauseAll();
     this.setData({ saving: true, progressText: '' });
@@ -474,12 +478,23 @@ Page({
       const name = defaultFileName(type, this.data.outUrl, this.data.fileName);
       const named = await renameLocalFile(filePath, name);
       this.setData({ savedName: name });
-      if (this.data.isVideo) {
+
+      let where = '相册';
+      if (devtools) {
+        try {
+          await saveToDisk(named);
+          where = '电脑';
+        } catch (e) {
+          // 工具不支持「另存为」时退回相册（工具内是模拟保存）
+          if (this.data.isVideo) await saveVideo(named);
+          else await saveImage(named);
+        }
+      } else if (this.data.isVideo) {
         await saveVideo(named);
       } else {
         await saveImage(named);
       }
-      toast('已保存 ' + name, 'success');
+      toast('已保存到' + where + '：' + name, 'success');
       this.consumeVideoQuota();
       if (this.jobId) {
         jobApi.markSaved(this.jobId).catch(() => {});

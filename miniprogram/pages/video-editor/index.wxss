@@ -296,3 +296,40 @@
 .mask-cancel:active {
   background: #f7f5ef;
 }
+
+/* 电脑（开发者工具）测试状态角标：真机不渲染 */
+.sim-chip {
+  position: absolute;
+  left: 16rpx;
+  top: 16rpx;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  max-width: 80%;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.sim-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #b4b2a9;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+
+.sim-tx {
+  font-size: 22rpx;
+  line-height: 1.4;
+  color: #ffffff;
+}
+
+.sim-ok .sim-dot {
+  background: #4ade80;
+}
+
+.sim-down .sim-dot {
+  background: #f87171;
+}

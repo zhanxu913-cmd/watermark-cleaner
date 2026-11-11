@@ -49,6 +49,14 @@
     <!-- 播放状态角标 -->
     <view class="stage-badge">{{playing ? '播放中' : '已暂停'}}</view>
 
+    <!-- 电脑测试（开发者工具）状态角标：真机不显示，点一下重新探测 -->
+    <view wx:if="{{simulator}}" class="sim-chip sim-{{simService}}" catchtap="checkSimService">
+      <view class="sim-dot"></view>
+      <view class="sim-tx" wx:if="{{simService === 'ok'}}">电脑服务已连接</view>
+      <view class="sim-tx" wx:elif="{{simService === 'checking'}}">检测电脑服务…</view>
+      <view class="sim-tx" wx:else>电脑服务未连接·点此重试</view>
+    </view>
+
     <!-- 播放控制条 -->
     <view class="stage-bar">
       <view class="sbar-btn primary" bindtap="togglePlay">{{playing ? '暂停' : '播放'}}</view>

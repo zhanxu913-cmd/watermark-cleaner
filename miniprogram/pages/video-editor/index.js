@@ -59,7 +59,10 @@ Page({
     cancelling: false,
     progress: 0,
     progressLabel: '',
-    videoServiceEnabled: true
+    videoServiceEnabled: true,
+
+    // 电脑（开发者工具）测试：电脑视频服务的连接状态 '' | 'checking' | 'ok' | 'down'
+    simService: ''
   },
 
   onLoad() {
@@ -103,6 +106,16 @@ Page({
 
   onReady() {
     this.prepare();
+    // 电脑测试模式下自动探测一次电脑视频服务，界面上给出明确状态
+    if (this.data.simulator) this.checkSimService();
+  },
+
+  /** 电脑测试：探测 video-service-lite 是否就绪（点状态条可手动重试） */
+  async checkSimService() {
+    if (!this.data.simulator) return;
+    this.setData({ simService: 'checking' });
+    const up = await videoRemote.serviceAvailable();
+    this.setData({ simService: up ? 'ok' : 'down' });
   },
 
   onUnload() {
@@ -695,11 +708,12 @@ Page({
     // 模拟器：提交前先探测电脑服务，未启动则不创建记录、直接给指引
     if (this.data.simulator) {
       const up = await videoRemote.serviceAvailable();
+      this.setData({ simService: up ? 'ok' : 'down' });
       if (!up) {
         return wx.showModal({
-          title: '电脑服务未启动',
+          title: '电脑视频服务未启动',
           content:
-            '模拟器测试需要电脑上的视频服务。请双击桌面 start-video-service.bat（或到 video-service-lite 目录运行 npm start），启动后再提交。',
+            '电脑测试模式需要本机的视频服务。请双击项目根目录的 start-video-service.bat（或在该目录执行 npm start），看到 3100 端口启动后回到这里，点状态条重试即可。',
           showCancel: false,
           confirmColor: '#185FA5'
         });

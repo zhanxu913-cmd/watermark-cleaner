@@ -400,6 +400,33 @@ function openDocument(filePath, fileType) {
   });
 }
 
+/** 是否运行在微信开发者工具（真机恒为 false） */
+function isDevtools() {
+  try {
+    return wx.getSystemInfoSync().platform === 'devtools';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 保存文件到电脑（仅开发者工具 / PC 端微信支持，真机没有这个能力）。
+ * 用途：电脑上自测时能把处理结果真正落到硬盘，直接播放验证声音与画面。
+ */
+function saveToDisk(filePath) {
+  return new Promise((resolve, reject) => {
+    if (typeof wx.saveFileToDisk !== 'function') {
+      reject(new Error('当前环境不支持保存到电脑'));
+      return;
+    }
+    wx.saveFileToDisk({
+      filePath,
+      success: () => resolve(true),
+      fail: (err) => reject(new Error((err && err.errMsg) || '保存到电脑失败'))
+    });
+  });
+}
+
 module.exports = {
   formatSize,
   formatDuration,
@@ -429,5 +456,7 @@ module.exports = {
   guessExt,
   defaultFileName,
   renameLocalFile,
-  openDocument
+  openDocument,
+  isDevtools,
+  saveToDisk
 };

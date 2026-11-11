@@ -2,7 +2,7 @@ const app = getApp();
 const jobApi = require('../../services/job');
 const rewardAd = require('../../services/reward-ad');
 const quota = require('../../utils/quota');
-const { toast, confirm, debounce, ensureAlbumAuth, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt } = require('../../utils/util');
+const { toast, confirm, debounce, ensureAlbumAuth, downloadFile, defaultFileName, renameLocalFile, extLabel, guessExt, isDevtools, saveToDisk } = require('../../utils/util');
 
 const FILTERS = [
   { key: 'all', label: '全部' },
@@ -297,8 +297,12 @@ Page({
       if (!unlocked) return;
     }
 
-    const authed = await ensureAlbumAuth();
-    if (!authed) return toast('未获得相册权限，无法保存');
+    // 电脑（开发者工具）自测：相册是模拟的，改为另存到电脑，方便直接播放验证
+    const devtools = isDevtools();
+    if (!devtools) {
+      const authed = await ensureAlbumAuth();
+      if (!authed) return toast('未获得相册权限，无法保存');
+    }
 
     // 下载前先算好默认文件名（时间 + 类型），并落到本地文件系统
     const name = defaultFileName(job.type, job.outUrl || job.outFileID, job.fileName);
@@ -310,11 +314,23 @@ Page({
       if (!url) throw new Error('结果文件已过期');
       const path = await downloadFile(url);
       const named = await renameLocalFile(path, name);
-      if (job.type === 'video') await saveVideo(named);
-      else await saveImage(named);
+      let where = '相册';
+      if (devtools) {
+        try {
+          await saveToDisk(named);
+          where = '电脑';
+        } catch (e) {
+          if (job.type === 'video') await saveVideo(named);
+          else await saveImage(named);
+        }
+      } else if (job.type === 'video') {
+        await saveVideo(named);
+      } else {
+        await saveImage(named);
+      }
       if (job.type === 'video') quota.consume(1); // 视频保存成功才扣 1 条
       wx.hideLoading();
-      toast('已保存 ' + name + '（' + fmt + '）', 'success');
+      toast('已保存到' + where + '：' + name + '（' + fmt + '）', 'success');
     } catch (err) {
       wx.hideLoading();
       toast((err && err.message) || '下载失败，请重试');
