@@ -220,6 +220,7 @@ function showRewardedAd() {
  */
 async function ensureQuota() {
   const left = quota.get();
+  console.log('[广告闸门] 进入, 剩余额度 =', left);
 
   if (left > 0) return true;
 
@@ -238,6 +239,7 @@ async function ensureQuota() {
   // 防护二：展示广告入口前先确认拉取成功（未就绪时主动拉取，最多等 3 秒）
   if (isConfigured()) {
     const ready = await ensureLoaded(3000);
+    console.log('[广告闸门] 广告拉取就绪 =', ready, ', 最近错误 =', _adErrors[pageKey()] || '无');
     if (!ready) {
       wx.showModal({
         title: '广告暂时无法播放',

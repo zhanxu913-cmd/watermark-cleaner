@@ -274,13 +274,16 @@ Page({
 
   // 单条下载：点卡片右下角「下载」（视频存相册，图片存相册）
   async onCardDownload(e) {
+    console.log('[下载] 记录页点击已触发, job=', e && e.detail && e.detail.job && e.detail.job.id);
     const job = e.detail && e.detail.job;
-    if (!job) return;
+    if (!job) return console.warn('[下载] 未取到 job，事件数据异常');
     if (job.status !== 'done') return toast('该记录还没有可下载的结果');
 
     // 视频下载走额度闸门：图片免费直接放行
     if (job.type === 'video') {
+      console.log('[下载] 视频, 当前额度=', quota.get());
       const unlocked = await rewardAd.ensureQuota();
+      console.log('[下载] 额度闸门结果 =', unlocked);
       if (!unlocked) return;
     }
 
