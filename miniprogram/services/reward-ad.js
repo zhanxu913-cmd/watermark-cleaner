@@ -39,6 +39,8 @@ const _adErrors = {};
 
 // 当前等待 onClose 的 promise（同一时刻只会有一个广告在播）
 let _pending = null;
+// 最近一次闸门未通过的原因（页面屏上提示用）
+let _gateError = '';
 
 /* ---------- 真机可读的诊断日志 ---------- */
 const AD_LOG_KEY = 'wc_ad_log_v1';
@@ -167,7 +169,9 @@ function showRewardedAd() {
         const p = _pending;
         _pending = null;
         if (p.timer) clearTimeout(p.timer);
-        const msg = (err && (err.errMsg || err.message)) || '广告显示失败';
+        const raw = (err && (err.errMsg || err.message)) || '';
+        // 优先用 onError 里带 errCode 的信息，便于定位（1004/1005/1008 等）
+        const msg = _adErrors[pageKey()] || raw || '广告显示失败';
         logAd('广告显示失败', msg);
         reject(new Error(msg));
       });
@@ -243,10 +247,14 @@ async function ensureQuota() {
 
   const left = quota.get();
   logAd('闸门进入', '剩余额度=' + left + ' 今日已看=' + dailyCount() + '/' + MAX_AD_PER_DAY);
-  if (left > 0) return true;
+  if (left > 0) {
+    _gateError = '';
+    return true;
+  }
 
   if (dailyCount() >= MAX_AD_PER_DAY) {
     logAd('已达每日观看上限');
+    _gateError = '今日观看次数已达上限';
     tip('今日观看次数已达上限', '每个用户每天可观看的广告次数有限，明天再来解锁更多下载额度吧。');
     return false;
   }
@@ -267,6 +275,7 @@ async function ensureQuota() {
   });
   if (!go) {
     logAd('用户点了暂不');
+    _gateError = '用户取消';
     return false;
   }
 
@@ -277,14 +286,18 @@ async function ensureQuota() {
       bumpDailyCount();
       logAd('发放额度', '+' + QUOTA_PER_AD + '，今日第 ' + dailyCount() + ' 次');
       toast('已解锁 ' + QUOTA_PER_AD + ' 次下载', 'success');
+      _gateError = '';
       return true;
     }
     logAd('未看完，不发额度');
+    _gateError = '广告未看完';
     toast('广告未看完，本次未解锁');
     return false;
   } catch (e) {
-    logAd('广告异常', (e && e.message) || String(e));
-    tip('广告暂时无法播放', (e && e.message) || '请稍后再试。');
+    const msg = (e && e.message) || String(e);
+    logAd('广告异常', msg);
+    _gateError = msg;
+    tip('广告无法播放（' + msg + '）', '请稍后重试，或到「我的 → 关于 → 广告诊断」查看错误码。');
     return false;
   }
 }
@@ -313,8 +326,14 @@ function getDiag() {
     lastError: _adErrors[key] || '无',
     quota: quota.get(),
     daily: dailyCount() + ' / ' + MAX_AD_PER_DAY,
+    gateError: _gateError || '无',
     logs: logs.length ? logs : ['（暂无记录，请先点一次「测试拉起激励视频」）']
   };
+}
+
+/** 最近一次闸门未通过的原因（页面屏上提示用） */
+function lastGateError() {
+  return _gateError;
 }
 
 function clearDiagLogs() {
@@ -343,5 +362,6 @@ module.exports = {
   isConfigured,
   getDiag,
   clearDiagLogs,
-  testShow
+  testShow,
+  lastGateError
 };

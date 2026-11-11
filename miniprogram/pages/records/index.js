@@ -307,7 +307,7 @@ Page({
     // 视频下载走额度闸门：图片免费直接放行
     if (job.type === 'video') {
       const unlocked = await rewardAd.ensureQuota();
-      this.mark('③ 额度闸门: ' + (unlocked ? '通过' : '未通过'));
+      this.mark('③ 额度闸门: ' + (unlocked ? '通过' : '未通过 · ' + (rewardAd.lastGateError() || '未知原因')));
       if (!unlocked) return;
     }
 

@@ -65,6 +65,7 @@
             <view class="dg-row"><text class="dg-k">当前页面</text><text class="dg-v">{{diag.route}}</text></view>
             <view class="dg-row"><text class="dg-k">拉取状态</text><text class="dg-v">{{diag.loaded}}</text></view>
             <view class="dg-row"><text class="dg-k">最近错误</text><text class="dg-v">{{diag.lastError}}</text></view>
+            <view class="dg-row"><text class="dg-k">闸门拦截原因</text><text class="dg-v">{{diag.gateError}}</text></view>
             <view class="dg-row"><text class="dg-k">剩余额度</text><text class="dg-v">{{diag.quota}} 条</text></view>
             <view class="dg-row"><text class="dg-k">今日观看</text><text class="dg-v">{{diag.daily}}</text></view>
           </view>

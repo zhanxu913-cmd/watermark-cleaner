@@ -479,7 +479,7 @@ Page({
 
     try {
       const quotaOk = await this.ensureVideoQuota();
-      this.mark('② 额度检查: ' + (quotaOk ? '通过' : '未通过'));
+      this.mark('② 额度检查: ' + (quotaOk ? '通过' : '未通过 · ' + (rewardAd.lastGateError() || '未知原因')));
       if (!quotaOk) return;
 
       if (!devtools) {
