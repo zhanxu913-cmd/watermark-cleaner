@@ -328,12 +328,29 @@ Page({
       const named = await renameLocalFile(path, name);
       let where = '相册';
       if (devtools) {
+        // 开发者工具内相册是模拟的，saveVideo/saveImage 必失败，
+        // 因此工具内只走「另存到电脑」，失败时给出真实原因，不退回相册
         try {
           await saveToDisk(named);
           where = '电脑';
         } catch (e) {
-          if (job.type === 'video') await saveVideo(named);
-          else await saveImage(named);
+          const msg = (e && e.message) || '';
+          if (msg.indexOf('cancel') > -1 || msg.indexOf('取消') > -1) {
+            // 用户在另存对话框点了取消：视为主动放弃，不算失败
+            this.mark('已取消另存（文件保留在小程序本地）');
+            wx.hideLoading();
+            toast('已取消保存，文件保留在小程序内', 'none');
+            return;
+          }
+          this.mark('✗ 另存失败: ' + msg);
+          wx.hideLoading();
+          wx.showModal({
+            title: '保存到电脑失败',
+            content: '原因：' + msg + '\n\n文件已生成在小程序本地目录，可重试另存。',
+            showCancel: false,
+            confirmColor: '#185FA5'
+          });
+          return;
         }
       } else if (job.type === 'video') {
         await saveVideo(named);
