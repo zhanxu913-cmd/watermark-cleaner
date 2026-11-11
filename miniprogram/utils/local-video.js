@@ -19,7 +19,6 @@
 
 const MIN_REC_DURATION = 5; // MediaRecorder duration 参数最小值（秒）
 const MAX_EDGE = 720; // 输出画面最长边上限（性能与码率的平衡点）
-const wmDetect = require('./wm-detect');
 
 /* ============================================================
    能力检测
@@ -643,15 +642,5 @@ async function mergeAudio(silentVideo, srcVideo) {
 module.exports = {
   isSupported,
   isSimulator,
-  processVideo,
-  /** 自动识别水印候选框（真机）；模拟器走 video-remote.detectRegions */
-  detectRegions: async function (src, timeRange) {
-    if (isSimulator()) {
-      const e = new Error('模拟器不支持端内识别，请改走电脑服务通道');
-      e.code = 'SIMULATOR';
-      throw e;
-    }
-    if (!wx.createVideoDecoder) throw new Error('当前微信版本不支持自动识别，请手动框选');
-    return wmDetect.detectWatermarks(src, timeRange);
-  }
+  processVideo
 };

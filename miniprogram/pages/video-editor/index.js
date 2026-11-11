@@ -32,7 +32,6 @@ Page({
     regions: [{ x: 0.6, y: 0.8, w: 0.34, h: 0.12 }],
     selIdx: 0,
     hasRegion: true,
-    detecting: false,
 
     // 播放（与框选同时可用）
     playing: false,
@@ -598,30 +597,6 @@ Page({
       () => this.redraw()
     );
     toast(regions.length ? '已删除，剩 ' + regions.length + ' 个框' : '已清空全部框');
-  },
-
-  /** 自动识别水印位置（真机端内采样 / 模拟器走电脑服务） */
-  async autoDetect() {
-    if (this.data.detecting || this.data.submitting) return;
-    if (!this.data.src) return;
-    this.pauseVideo();
-    this.setData({ detecting: true });
-    try {
-      const timeRange = { start: this.data.startSec, end: this.data.endSec };
-      const boxes = this.data.simulator
-        ? await videoRemote.detectRegions(this.data.src, timeRange)
-        : await localVideo.detectRegions(this.data.src, timeRange);
-      if (!boxes || !boxes.length) {
-        toast('未自动识别到水印，请手动框选');
-      } else {
-        this.setData({ regions: boxes, selIdx: 0, hasRegion: true }, () => this.redraw());
-        toast('已识别 ' + boxes.length + ' 个候选框，可拖动微调', 'success');
-      }
-    } catch (e) {
-      toast((e && e.message) || '自动识别失败，请手动框选');
-    } finally {
-      this.setData({ detecting: false });
-    }
   },
 
   /* ================= 时间区间 ================= */

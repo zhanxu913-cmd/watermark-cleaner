@@ -62,7 +62,6 @@ loadEnv();
 // 必须在 loadEnv 之后加载：ffmpeg.js 在模块初始化时就会解析可执行文件路径
 const ff = require('./lib/ffmpeg');
 const graph = require('./lib/graph');
-const detectLib = require('./lib/detect');
 const binpath = require('./lib/binpath');
 
 const PORT = Number(process.env.PORT) || 3100;
@@ -449,28 +448,6 @@ app.post('/api/video/submit', auth, upload.single('file'), (req, res) => {
 
   console.log('[video] 入队 ' + id + '  ' + (req.file.size / 1024 / 1024).toFixed(1) + 'MB  mode=' + job.mode);
   res.json({ code: 0, data: { id, status: 'pending' } });
-});
-
-/* ---------- 自动识别水印位置（模拟器测试通道用，不产生任务） ---------- */
-app.post('/api/video/detect', auth, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ code: 400, msg: '缺少视频文件' });
-  try {
-    const timeRange = safeParse(req.body.timeRange) || { start: 0, end: 0 };
-    let duration = 0;
-    try {
-      const info = await ff.probe(req.file.path);
-      duration = info.duration || 0;
-    } catch (e) {
-      /* probe 失败不影响：按 timeRange 兜底采样 */
-    }
-    const regions = await detectLib.detect(req.file.path, { timeRange, duration });
-    res.json({ code: 0, data: { regions } });
-  } catch (e) {
-    res.json({ code: 500, msg: (e && e.message) || '识别失败' });
-  } finally {
-    // 识别不产生任务，源文件用完即删
-    removeQuiet(req.file.path);
-  }
 });
 
 /* ---------- 状态 ---------- */

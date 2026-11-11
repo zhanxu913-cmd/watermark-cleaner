@@ -190,38 +190,7 @@ async function serviceAvailable() {
   }
 }
 
-/**
- * 自动识别水印候选框（模拟器路径：上传到电脑服务，ffmpeg 抽帧分析）
- * @param {string} src 本地视频路径
- * @param {{start:number,end:number}} [timeRange] 在该时段内采样
- * @returns {Promise<Array<{x:number,y:number,w:number,h:number}>>}
- */
-async function detectRegions(src, timeRange) {
-  const base = VIDEO_API_BASE_URL.replace(/\/+$/, '');
-  if (!base) throw new Error('未配置视频服务地址（utils/constants.js → VIDEO_API_BASE_URL）');
-  const res = await new Promise((resolve, reject) => {
-    wx.uploadFile({
-      url: base + '/api/video/detect',
-      filePath: src,
-      name: 'file',
-      formData: { timeRange: JSON.stringify(timeRange || { start: 0, end: 0 }) },
-      header: authHeader(),
-      success: resolve,
-      fail: () => reject(new Error('无法连接电脑上的视频服务（自动识别也需要服务运行）'))
-    });
-  });
-  let body = null;
-  try {
-    body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-  } catch (e) {
-    throw new Error('视频服务响应异常');
-  }
-  if (!body || body.code !== 0) throw new Error((body && body.msg) || '识别失败');
-  return (body.data && body.data.regions) || [];
-}
-
 module.exports = {
   processVideoRemote,
-  serviceAvailable,
-  detectRegions
+  serviceAvailable
 };
